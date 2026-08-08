@@ -1,0 +1,1809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Sundaravalli Cottage Industries — Master Data</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2B3440">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --ink:#1A1D21;
+  --graphite:#2B3440;
+  --graphite-2:#37414E;
+  --paper:#FAFAF7;
+  --paper-2:#F0EEE8;
+  --line:#DCD8CE;
+  --amber:#E8A33D;
+  --amber-dark:#C6862A;
+  --teal:#3D8B85;
+  --red:#B0473F;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--sans);
+  background:var(--paper-2);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font-family:inherit;font-size:15px;}
+a{color:inherit;}
+
+/* ---------- Layout shell ---------- */
+.app{display:flex;min-height:100vh;}
+.sidebar{
+  width:238px;flex-shrink:0;background:var(--graphite);color:#EFEDE7;
+  display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;
+  transform:translateX(0);transition:transform .2s ease;z-index:40;
+}
+.sidebar .brand{
+  padding:20px 18px 14px;border-bottom:1px solid rgba(255,255,255,.08);
+}
+.brand .plate{
+  display:inline-block;border:1.5px solid var(--amber);color:var(--amber);
+  font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.08em;
+  padding:3px 8px;border-radius:4px;margin-bottom:8px;
+}
+.brand h1{font-size:15px;margin:0;line-height:1.35;font-weight:600;}
+.brand p{margin:4px 0 0;font-size:11.5px;color:#B7BEC7;font-family:var(--mono);}
+
+.nav{flex:1;overflow-y:auto;padding:10px 0;}
+.nav button{
+  width:100%;display:flex;align-items:center;gap:10px;background:none;border:none;
+  color:#D7DBE0;text-align:left;padding:10px 18px;cursor:pointer;font-size:14px;
+  border-left:3px solid transparent;
+}
+.nav button .num{
+  font-family:var(--mono);font-size:10.5px;color:#8A93A0;border:1px solid #4A5560;
+  border-radius:3px;padding:1px 5px;min-width:22px;text-align:center;
+}
+.nav button:hover{background:rgba(255,255,255,.05);}
+.nav button.active{background:rgba(232,163,61,.12);border-left-color:var(--amber);color:#fff;}
+.nav button.active .num{border-color:var(--amber);color:var(--amber);}
+.nav .sect-label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:#6C7480;padding:14px 18px 4px;
+}
+.sidebar-foot{padding:12px 18px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:#8A93A0;font-family:var(--mono);}
+
+.main{flex:1;margin-left:238px;min-width:0;}
+.topbar{
+  display:none;position:sticky;top:0;z-index:30;background:var(--graphite);color:#fff;
+  align-items:center;gap:12px;padding:12px 16px;
+}
+.topbar button.hamburger{
+  background:none;border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;
+  width:36px;height:36px;font-size:16px;cursor:pointer;
+}
+.topbar .tb-title{font-size:14px;font-weight:600;font-family:var(--mono);}
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:35;}
+
+.content{padding:26px 30px 60px;max-width:1180px;}
+
+/* ---------- Dashboard ---------- */
+.hero{
+  background:var(--graphite);color:#fff;border-radius:10px;padding:22px 24px;
+  margin-bottom:22px;position:relative;overflow:hidden;
+  border:1px solid #1F262E;
+}
+.hero:before{
+  content:"";position:absolute;top:0;right:0;bottom:0;width:6px;background:var(--amber);
+}
+.hero .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--amber);text-transform:uppercase;}
+.hero h2{margin:6px 0 4px;font-size:22px;}
+.hero p{margin:0;color:#C3C9D0;font-size:13.5px;}
+
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:26px;}
+.stat-card{
+  background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px;cursor:pointer;
+  transition:border-color .15s, transform .15s;
+}
+.stat-card:hover{border-color:var(--amber);transform:translateY(-1px);}
+.stat-card .sc-top{display:flex;justify-content:space-between;align-items:flex-start;}
+.stat-card .num{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-radius:3px;padding:1px 6px;color:#8B8578;}
+.stat-card h3{font-size:13.5px;margin:10px 0 2px;color:#4A4F55;}
+.stat-card .count{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--graphite);}
+.stat-card .sub{font-size:11.5px;color:#8B8578;margin-top:2px;}
+.stat-card.warn .count{color:var(--red);}
+
+.alert-box{
+  background:#FBF1E7;border:1px solid #EFC98D;border-left:4px solid var(--amber-dark);
+  border-radius:6px;padding:14px 16px;margin-bottom:22px;
+}
+.alert-box h4{margin:0 0 8px;font-size:13px;color:#8A5A16;font-family:var(--mono);letter-spacing:.03em;}
+.alert-box ul{margin:0;padding-left:18px;font-size:13.5px;color:#5C4318;}
+.alert-box li{margin-bottom:3px;}
+
+/* ---------- Master view ---------- */
+.view-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;}
+.view-head .vh-left .eyebrow{font-family:var(--mono);font-size:11px;color:#8B8578;letter-spacing:.1em;text-transform:uppercase;}
+.view-head h2{margin:2px 0 0;font-size:20px;}
+
+.btn{
+  border:none;border-radius:6px;padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.btn-primary{background:var(--amber);color:#28210D;}
+.btn-primary:hover{background:var(--amber-dark);}
+.btn-ghost{background:#fff;color:var(--graphite);border:1px solid var(--line);}
+.btn-ghost:hover{border-color:#B9B2A2;}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-danger:hover{background:#8F3830;}
+.btn-sm{padding:6px 10px;font-size:12.5px;border-radius:5px;}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+.toolbar input[type=search]{
+  flex:1;min-width:180px;padding:9px 12px;border:1px solid var(--line);border-radius:6px;background:#fff;
+}
+.toolbar select{padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--teal);outline-offset:1px;}
+
+.table-wrap{background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+thead th{
+  text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:#8B8578;
+  padding:11px 14px;border-bottom:1px solid var(--line);background:var(--paper);font-weight:600;
+}
+tbody td{padding:11px 14px;border-bottom:1px solid #EEEBE3;font-size:14px;vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:#FCFAF6;}
+.row-actions{display:flex;gap:6px;justify-content:flex-end;}
+.mono{font-family:var(--mono);}
+.name-cell{font-weight:600;}
+.name-cell .sub{display:block;font-weight:400;font-size:12px;color:#8B8578;}
+
+.badge{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;letter-spacing:.02em;}
+.badge.active{background:#E4F1EF;color:var(--teal);}
+.badge.inactive{background:#F1E4E2;color:var(--red);}
+.badge.low{background:#FBE7E5;color:var(--red);}
+
+.empty-state{padding:50px 20px;text-align:center;color:#9A9484;}
+.empty-state .es-icon{font-size:30px;margin-bottom:8px;}
+.empty-state h4{margin:0 0 4px;color:#5A554A;font-size:15px;}
+.empty-state p{margin:0;font-size:13px;}
+
+/* ---------- Modal ---------- */
+.modal-backdrop{
+  display:none;position:fixed;inset:0;background:rgba(20,22,25,.55);z-index:50;
+  align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 14px;
+}
+.modal{
+  background:#fff;border-radius:10px;max-width:520px;width:100%;
+  box-shadow:0 20px 50px rgba(0,0,0,.25);
+}
+.modal-head{
+  display:flex;justify-content:space-between;align-items:center;padding:18px 20px;
+  border-bottom:1px solid var(--line);
+}
+.modal-head h3{margin:0;font-size:16px;}
+.modal-head .mh-tag{font-family:var(--mono);font-size:10.5px;color:#8B8578;}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#8B8578;line-height:1;}
+.modal-body{padding:18px 20px;max-height:65vh;overflow-y:auto;}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;}
+
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12.5px;font-weight:600;color:#4A4F55;margin-bottom:5px;}
+.field label .req{color:var(--red);}
+.field input,.field select,.field textarea{
+  width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);
+}
+.field textarea{resize:vertical;min-height:60px;}
+.field .hint{font-size:11.5px;color:#9A9484;margin-top:3px;}
+.field .err{font-size:11.5px;color:var(--red);margin-top:3px;display:none;}
+.field.has-error input,.field.has-error select,.field.has-error textarea{border-color:var(--red);}
+.field.has-error .err{display:block;}
+
+.status-toggle{display:flex;gap:8px;}
+.status-toggle label{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;
+  border:1px solid var(--line);border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;color:#6A6458;
+}
+.status-toggle input{width:auto;margin:0;}
+.status-toggle input:checked + span{color:inherit;}
+.status-toggle label.opt-active{has(input:checked)}
+.status-toggle label:has(input:checked).opt-active{background:#E4F1EF;border-color:var(--teal);color:var(--teal);}
+.status-toggle label:has(input:checked).opt-inactive{background:#F1E4E2;border-color:var(--red);color:var(--red);}
+
+.confirm-modal .modal-body p{font-size:14.5px;line-height:1.5;}
+
+.toast-wrap{position:fixed;bottom:18px;right:18px;z-index:60;display:flex;flex-direction:column;gap:8px;}
+.toast{
+  background:var(--graphite);color:#fff;padding:11px 16px;border-radius:7px;font-size:13.5px;
+  box-shadow:0 8px 20px rgba(0,0,0,.25);min-width:200px;border-left:4px solid var(--teal);
+  animation:slideIn .18s ease;
+}
+.toast.err{border-left-color:var(--red);}
+@keyframes slideIn{from{transform:translateY(8px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+
+/* ---------- Purchase module ---------- */
+.quick-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+.quick-actions .btn{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);}
+.quick-actions .btn:hover{background:rgba(255,255,255,.2);}
+
+.filters-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center;}
+.filters-row input[type=search],.filters-row input[type=date],.filters-row select{
+  padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:13.5px;
+}
+.filters-row input[type=search]{flex:1;min-width:160px;}
+.filters-row .fr-label{font-size:11.5px;color:#9A9484;font-family:var(--mono);}
+
+.panel{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px 20px;margin-bottom:18px;}
+.panel h4{margin:0 0 14px;font-size:14px;font-family:var(--mono);color:#4A4F55;letter-spacing:.03em;}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;}
+.form-grid .field{margin-bottom:0;}
+
+.item-grid-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;margin-bottom:12px;}
+table.item-grid{width:100%;border-collapse:collapse;min-width:900px;}
+table.item-grid thead th{
+  background:var(--paper);font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#8B8578;
+  padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;
+}
+table.item-grid tbody td{padding:7px 8px;border-bottom:1px solid #EEEBE3;vertical-align:middle;}
+table.item-grid input,table.item-grid select{
+  width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:5px;font-size:13.5px;min-width:80px;
+}
+table.item-grid select{min-width:170px;}
+table.item-grid .num-readout{font-family:var(--mono);font-size:13.5px;white-space:nowrap;padding:0 4px;}
+table.item-grid .row-remove{background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;padding:4px 8px;}
+table.item-grid .row-remove:disabled{color:#C9C4B8;cursor:not-allowed;}
+
+.totals-bar{
+  display:flex;flex-wrap:wrap;gap:18px;justify-content:flex-end;background:var(--paper);
+  border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin-bottom:18px;
+}
+.totals-bar .ti{text-align:right;}
+.totals-bar .ti .tl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#9A9484;font-family:var(--mono);}
+.totals-bar .ti .tv{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--graphite);}
+.totals-bar .ti.grand .tv{color:var(--amber-dark);font-size:18px;}
+.totals-bar .ti input{width:110px;padding:6px 8px;border:1px solid var(--line);border-radius:5px;font-family:var(--mono);text-align:right;}
+
+.lock-note{
+  display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--red);background:#F1E4E2;
+  border-radius:5px;padding:4px 9px;font-family:var(--mono);
+}
+
+.detail-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:20px;margin-bottom:18px;}
+.detail-card .dc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:14px;}
+.detail-card .dc-item .dl{font-size:11px;text-transform:uppercase;color:#9A9484;letter-spacing:.04em;font-family:var(--mono);}
+.detail-card .dc-item .dv{font-size:14.5px;font-weight:600;margin-top:2px;}
+
+.report-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:18px;}
+.report-summary .rs-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px 16px;}
+.report-summary .rs-card .tl{font-size:11px;text-transform:uppercase;color:#9A9484;letter-spacing:.04em;font-family:var(--mono);}
+.report-summary .rs-card .tv{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--graphite);margin-top:4px;}
+
+#printArea{display:none;}
+@media print{
+  body *{visibility:hidden;}
+  #printArea, #printArea *{visibility:visible;}
+  #printArea{display:block;position:absolute;top:0;left:0;width:100%;padding:20px;}
+  #printArea table{width:100%;border-collapse:collapse;}
+  #printArea th, #printArea td{border:1px solid #999;padding:6px 8px;font-size:12px;text-align:left;}
+  #printArea h2{margin:0 0 4px;}
+  #printArea .p-sub{color:#555;font-size:12px;margin-bottom:14px;}
+  #printArea .p-totals{margin-top:12px;font-size:13px;}
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width:880px){
+  .sidebar{transform:translateX(-100%);width:250px;}
+  .sidebar.open{transform:translateX(0);}
+  .overlay.show{display:block;}
+  .main{margin-left:0;}
+  .topbar{display:flex;}
+  .content{padding:18px 14px 60px;}
+  .grid-cards{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
+  thead{display:none;}
+  table,tbody,tr,td{display:block;width:100%;}
+  tbody tr{border-bottom:1px solid var(--line);padding:10px 14px;}
+  tbody td{border:none;padding:4px 0;display:flex;justify-content:space-between;gap:10px;font-size:13.5px;}
+  tbody td:before{content:attr(data-label);font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#9A9484;font-weight:600;}
+  tbody td.row-actions-cell{justify-content:flex-end;padding-top:8px;}
+  tbody td.row-actions-cell:before{content:"";}
+  .table-wrap{border:none;background:none;}
+  tbody tr{background:#fff;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="overlay" id="overlay"></div>
+  <nav class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="plate">SV · 1958</span>
+      <h1>Sundaravalli Cottage Industries</h1>
+      <p>Master Data · Module 1</p>
+    </div>
+    <div class="nav" id="navList"></div>
+    <div class="sidebar-foot">Offline-first · Data stored on this device</div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Menu">☰</button>
+      <span class="tb-title" id="tbTitle">Dashboard</span>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="formBackdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h3 id="formTitle">Add Record</h3>
+        <div class="mh-tag" id="formTag"></div>
+      </div>
+      <button class="modal-close" id="formClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body" id="formBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="formCancel">Cancel</button>
+      <button class="btn btn-primary" id="formSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="confirmBackdrop">
+  <div class="modal confirm-modal">
+    <div class="modal-head">
+      <h3>Delete record?</h3>
+      <button class="modal-close" id="confirmClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirmText">Are you sure you want to delete this record?</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="confirmCancel">Cancel</button>
+      <button class="btn btn-danger" id="confirmDelete">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+<div id="printArea"></div>
+
+<script>
+/* ============================================================
+   Sundaravalli Cottage Industries — Master Data (Module 1)
+   Single-file offline-first PWA. IndexedDB storage.
+   Schema is designed to be reused unchanged by future modules:
+   Purchase, Stock, Formula/BOM, Manufacturing, Packing,
+   Costing, Sales, Reports, WhatsApp integration.
+   ============================================================ */
+
+const DB_NAME = 'sundaravalli_erp';
+const DB_VERSION = 2;
+const STORES = ['rawMaterials','suppliers','products','packingMaterials','labour','electricity','machines','expenses','units',
+  'purchases','purchaseReturns','stockMovements','auditLog','counters'];
+
+let db;
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e)=>{
+      const _db = e.target.result;
+      STORES.forEach(name=>{
+        if(!_db.objectStoreNames.contains(name)){
+          _db.createObjectStore(name, {keyPath:'id'});
+        }
+      });
+    };
+    req.onsuccess = ()=>{ db = req.result; resolve(db); };
+    req.onerror = ()=> reject(req.error);
+  });
+}
+function tx(store, mode){ return db.transaction(store, mode).objectStore(store); }
+function dbGetAll(store){
+  return new Promise((resolve,reject)=>{
+    const r = tx(store,'readonly').getAll();
+    r.onsuccess = ()=>resolve(r.result);
+    r.onerror = ()=>reject(r.error);
+  });
+}
+function dbPut(store, obj){
+  return new Promise((resolve,reject)=>{
+    const r = tx(store,'readwrite').put(obj);
+    r.onsuccess = ()=>resolve(obj);
+    r.onerror = ()=>reject(r.error);
+  });
+}
+function dbDelete(store, id){
+  return new Promise((resolve,reject)=>{
+    const r = tx(store,'readwrite').delete(id);
+    r.onsuccess = ()=>resolve();
+    r.onerror = ()=>reject(r.error);
+  });
+}
+function uid(){ return (crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now()+'-'+Math.random().toString(16).slice(2)); }
+
+/* ---------------- Master configuration ---------------- */
+function getUnitOptions(){
+  return (cache.units||[]).filter(u=>u.status!=='Inactive').map(u=>({value:u.name, label:u.name}));
+}
+function getSupplierOptions(){
+  return (cache.suppliers||[]).filter(s=>s.status!=='Inactive').map(s=>({value:s.id, label:s.name}));
+}
+function supplierName(id){
+  const s=(cache.suppliers||[]).find(x=>x.id===id);
+  return s? s.name : '—';
+}
+
+const MASTERS = [
+  {
+    key:'rawMaterials', num:'M1', label:'Raw Materials', singular:'Raw Material', nameField:'name',
+    dupKeyLabel:'Raw Material Name',
+    fields:[
+      {key:'name', label:'Raw Material Name', type:'text', required:true},
+      {key:'category', label:'Category', type:'text', required:true},
+      {key:'unit', label:'Unit of Measure', type:'select', options:getUnitOptions, required:true, placeholder:'Select unit'},
+      {key:'openingStock', label:'Opening Stock', type:'number', required:true, min:0},
+      {key:'minStock', label:'Minimum Stock Level', type:'number', required:true, min:0},
+      {key:'supplierId', label:'Default Supplier', type:'select', options:getSupplierOptions, placeholder:'Select supplier'},
+      {key:'purchaseRate', label:'Purchase Rate (₹)', type:'number', min:0},
+      {key:'remarks', label:'Remarks', type:'textarea'},
+    ],
+    columns:[
+      {key:'name', label:'Raw Material', render:(r)=>`<span class="name-cell">${esc(r.name)}<span class="sub">${esc(r.category||'')}</span></span>`},
+      {key:'unit', label:'Unit'},
+      {key:'currentStock', label:'Current Stock', render:(r)=>lowStockCell(r)},
+      {key:'minStock', label:'Min Level', render:(r)=>r.minStock},
+      {key:'avgCost', label:'Avg Cost (₹)', render:(r)=> r.avgCost ? '₹'+Number(r.avgCost).toFixed(2) : '—'},
+      {key:'supplierId', label:'Supplier', render:(r)=>esc(supplierName(r.supplierId))},
+    ]
+  },
+  {
+    key:'suppliers', num:'M2', label:'Suppliers', singular:'Supplier', nameField:'name',
+    dupKeyLabel:'Supplier Name',
+    fields:[
+      {key:'name', label:'Supplier Name', type:'text', required:true},
+      {key:'contactPerson', label:'Contact Person', type:'text'},
+      {key:'mobile', label:'Mobile Number', type:'tel', required:true, pattern:'^[0-9+ -]{7,15}$', patternMsg:'Enter a valid mobile number'},
+      {key:'gst', label:'GST Number (Optional)', type:'text'},
+      {key:'address', label:'Address', type:'textarea'},
+      {key:'city', label:'City', type:'text'},
+      {key:'notes', label:'Notes', type:'textarea'},
+    ],
+    columns:[
+      {key:'name', label:'Supplier', render:(r)=>`<span class="name-cell">${esc(r.name)}<span class="sub">${esc(r.contactPerson||'')}</span></span>`},
+      {key:'mobile', label:'Mobile'},
+      {key:'city', label:'City'},
+      {key:'gst', label:'GST No.', render:(r)=>esc(r.gst||'—')},
+    ]
+  },
+  {
+    key:'products', num:'M3', label:'Products', singular:'Product', nameField:'name',
+    dupKeyLabel:'Product Name',
+    fields:[
+      {key:'name', label:'Product Name', type:'text', required:true},
+      {key:'type', label:'Product Type', type:'select', required:true, placeholder:'Select type',
+        options:()=>[{value:'Direct Purchase',label:'Direct Purchase'},{value:'Repacking',label:'Repacking'},{value:'Manufacturing',label:'Manufacturing'}]},
+      {key:'category', label:'Product Category', type:'text'},
+      {key:'sellingUnit', label:'Selling Unit', type:'text', list:['100ml','200ml','300ml','500ml','1L','5L','1Kg','500g'], placeholder:'e.g. 500ml'},
+      {key:'sellingPrice', label:'Selling Price (₹)', type:'number', required:true, min:0},
+      {key:'gst', label:'GST %', type:'number', min:0, max:28, step:'0.01'},
+    ],
+    columns:[
+      {key:'name', label:'Product', render:(r)=>`<span class="name-cell">${esc(r.name)}<span class="sub">${esc(r.category||'')}</span></span>`},
+      {key:'type', label:'Type'},
+      {key:'sellingUnit', label:'Unit'},
+      {key:'sellingPrice', label:'Price', render:(r)=> r.sellingPrice!=null && r.sellingPrice!=='' ? '₹'+Number(r.sellingPrice).toFixed(2):'—'},
+      {key:'gst', label:'GST %', render:(r)=> r.gst!=null && r.gst!=='' ? r.gst+'%':'—'},
+    ]
+  },
+  {
+    key:'packingMaterials', num:'M4', label:'Packing Materials', singular:'Packing Material', nameField:'name',
+    dupKeyLabel:'Packing Material Name',
+    fields:[
+      {key:'name', label:'Packing Material Name', type:'text', required:true},
+      {key:'unit', label:'Unit', type:'select', options:getUnitOptions, required:true, placeholder:'Select unit'},
+      {key:'purchaseRate', label:'Purchase Rate (₹)', type:'number', min:0},
+      {key:'openingStock', label:'Opening Stock', type:'number', required:true, min:0},
+      {key:'minStock', label:'Minimum Stock Level', type:'number', required:true, min:0},
+    ],
+    columns:[
+      {key:'name', label:'Packing Material', render:(r)=>`<span class="name-cell">${esc(r.name)}</span>`},
+      {key:'unit', label:'Unit'},
+      {key:'currentStock', label:'Current Stock', render:(r)=>lowStockCell(r)},
+      {key:'minStock', label:'Min Level'},
+      {key:'avgCost', label:'Avg Cost (₹)', render:(r)=> r.avgCost ? '₹'+Number(r.avgCost).toFixed(2):'—'},
+    ]
+  },
+  {
+    key:'labour', num:'M5', label:'Labour', singular:'Employee', nameField:'name',
+    dupKeyLabel:'Employee Name',
+    fields:[
+      {key:'name', label:'Employee Name', type:'text', required:true},
+      {key:'designation', label:'Designation', type:'text', required:true},
+      {key:'dailyWage', label:'Daily Wage (8 Hours) ₹', type:'number', required:true, min:0},
+      {key:'otRate', label:'Overtime Rate per Hour (₹)', type:'number', min:0},
+      {key:'mobile', label:'Mobile Number', type:'tel', pattern:'^[0-9+ -]{7,15}$', patternMsg:'Enter a valid mobile number'},
+    ],
+    columns:[
+      {key:'name', label:'Employee', render:(r)=>`<span class="name-cell">${esc(r.name)}<span class="sub">${esc(r.designation||'')}</span></span>`},
+      {key:'dailyWage', label:'Daily Wage', render:(r)=> '₹'+Number(r.dailyWage||0).toFixed(2)},
+      {key:'otRate', label:'OT/Hr', render:(r)=> r.otRate!=null && r.otRate!=='' ? '₹'+Number(r.otRate).toFixed(2):'—'},
+      {key:'mobile', label:'Mobile', render:(r)=>esc(r.mobile||'—')},
+    ]
+  },
+  {
+    key:'electricity', num:'M6', label:'Electricity', singular:'Electricity Rate', nameField:'effectiveFrom',
+    dupKeyLabel:'Effective From Date', sortDesc:'effectiveFrom',
+    fields:[
+      {key:'costPerUnit', label:'Electricity Cost per Unit (₹/kWh)', type:'number', required:true, min:0, step:'0.01'},
+      {key:'effectiveFrom', label:'Effective From Date', type:'date', required:true},
+    ],
+    columns:[
+      {key:'effectiveFrom', label:'Effective From', render:(r)=>`<span class="name-cell">${esc(r.effectiveFrom)}</span>`},
+      {key:'costPerUnit', label:'Cost / Unit', render:(r)=>'₹'+Number(r.costPerUnit||0).toFixed(2)},
+    ]
+  },
+  {
+    key:'machines', num:'M7', label:'Machines', singular:'Machine', nameField:'name',
+    dupKeyLabel:'Machine Name',
+    fields:[
+      {key:'name', label:'Machine Name', type:'text', required:true},
+      {key:'type', label:'Machine Type', type:'text'},
+      {key:'powerKw', label:'Electricity Consumption (kW/hour)', type:'number', min:0, step:'0.01'},
+      {key:'remarks', label:'Remarks', type:'textarea'},
+    ],
+    columns:[
+      {key:'name', label:'Machine', render:(r)=>`<span class="name-cell">${esc(r.name)}<span class="sub">${esc(r.type||'')}</span></span>`},
+      {key:'powerKw', label:'kW/hr', render:(r)=> r.powerKw!=null && r.powerKw!=='' ? r.powerKw+' kW':'—'},
+    ]
+  },
+  {
+    key:'expenses', num:'M8', label:'Expenses', singular:'Expense', nameField:'name',
+    dupKeyLabel:'Expense Name',
+    fields:[
+      {key:'name', label:'Expense Name', type:'text', required:true, list:['Rent','Transport','Maintenance','Fuel','Miscellaneous']},
+      {key:'category', label:'Category', type:'text'},
+      {key:'defaultAmount', label:'Default Amount (₹)', type:'number', min:0},
+      {key:'remarks', label:'Remarks', type:'textarea'},
+    ],
+    columns:[
+      {key:'name', label:'Expense', render:(r)=>`<span class="name-cell">${esc(r.name)}<span class="sub">${esc(r.category||'')}</span></span>`},
+      {key:'defaultAmount', label:'Default Amt', render:(r)=> r.defaultAmount!=null && r.defaultAmount!=='' ? '₹'+Number(r.defaultAmount).toFixed(2):'—'},
+    ]
+  },
+  {
+    key:'units', num:'M9', label:'Units', singular:'Unit', nameField:'name',
+    dupKeyLabel:'Unit Name',
+    fields:[
+      {key:'name', label:'Unit Name', type:'text', required:true},
+    ],
+    columns:[
+      {key:'name', label:'Unit Name', render:(r)=>`<span class="name-cell">${esc(r.name)}</span>`},
+    ]
+  },
+];
+const DEFAULT_UNITS = ['Kg','Gram','Litre','ml','Piece','Box','Packet','Bottle','Can'];
+
+/* ---------------- App state ---------------- */
+let cache = {};          // in-memory copies of every store
+let currentKey = null;   // active master key, null = dashboard
+let editState = {store:null, id:null};
+let deleteState = {store:null, id:null, label:''};
+let searchQ = '';
+let statusFilter = 'All';
+
+function esc(s){
+  if(s===undefined||s===null) return '';
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function lowStockCell(r){
+  const stock = r.currentStock!=null ? r.currentStock : r.openingStock;
+  const low = Number(stock) <= Number(r.minStock);
+  return `${esc(stock)} ${low? '<span class="badge low">LOW</span>':''}`;
+}
+function round2(n){ return Math.round((Number(n)||0)*100)/100; }
+function toast(msg, isErr){
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast'+(isErr?' err':'');
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(()=>{ t.remove(); }, 2600);
+}
+
+/* ---------------- Boot ---------------- */
+async function boot(){
+  await openDB();
+  await reloadAllCache();
+  await seedDefaultUnits();
+  await migrateStockFields();
+  renderNav();
+  renderDashboard();
+  wireGlobalUI();
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+}
+async function reloadAllCache(){
+  for(const s of STORES){ cache[s] = await dbGetAll(s); }
+}
+async function migrateStockFields(){
+  for(const key of ['rawMaterials','packingMaterials']){
+    let changed = false;
+    for(const r of (cache[key]||[])){
+      if(r.currentStock===undefined){
+        r.currentStock = Number(r.openingStock)||0;
+        r.avgCost = Number(r.purchaseRate)||0;
+        r.updatedAt = Date.now();
+        await dbPut(key, r);
+        changed = true;
+      }
+    }
+    if(changed) cache[key] = await dbGetAll(key);
+  }
+}
+async function seedDefaultUnits(){
+  if(cache.units && cache.units.length===0){
+    for(const name of DEFAULT_UNITS){
+      const obj = {id:uid(), name, status:'Active', createdAt:Date.now(), updatedAt:Date.now()};
+      await dbPut('units', obj);
+    }
+    cache.units = await dbGetAll('units');
+  }
+}
+
+/* ---------------- Nav ---------------- */
+function renderNav(){
+  const nav = document.getElementById('navList');
+  nav.innerHTML = '';
+  const dashBtn = document.createElement('button');
+  dashBtn.innerHTML = `<span class="num">•</span> Dashboard`;
+  dashBtn.className = currentKey===null ? 'active':'';
+  dashBtn.onclick = ()=> go(null);
+  nav.appendChild(dashBtn);
+
+  const lbl = document.createElement('div');
+  lbl.className='sect-label';
+  lbl.textContent='Masters';
+  nav.appendChild(lbl);
+
+  MASTERS.forEach(m=>{
+    const b = document.createElement('button');
+    b.innerHTML = `<span class="num">${m.num}</span> ${m.label}`;
+    b.className = currentKey===m.key ? 'active':'';
+    b.onclick = ()=> go(m.key);
+    nav.appendChild(b);
+  });
+
+  const lbl2 = document.createElement('div');
+  lbl2.className='sect-label';
+  lbl2.textContent='Transactions';
+  nav.appendChild(lbl2);
+
+  TXN_NAV.forEach(t=>{
+    const b = document.createElement('button');
+    b.innerHTML = `<span class="num">${t.num}</span> ${t.label}`;
+    b.className = currentKey===t.key ? 'active':'';
+    b.onclick = ()=> go(t.key);
+    nav.appendChild(b);
+  });
+}
+const TXN_NAV = [
+  {key:'purchases', num:'T1', label:'Purchases'},
+  {key:'purchaseReturns', num:'T2', label:'Purchase Returns'},
+  {key:'purchaseReports', num:'T3', label:'Purchase Reports'},
+];
+function go(key, after){
+  currentKey = key;
+  searchQ=''; statusFilter='All';
+  renderNav();
+  closeSidebar();
+  if(key===null){
+    renderDashboard(); document.getElementById('tbTitle').textContent='Dashboard';
+  } else if(key==='purchases'){
+    document.getElementById('tbTitle').textContent='Purchases';
+    renderPurchaseList();
+  } else if(key==='purchaseReturns'){
+    document.getElementById('tbTitle').textContent='Purchase Returns';
+    renderReturnList();
+  } else if(key==='purchaseReports'){
+    document.getElementById('tbTitle').textContent='Purchase Reports';
+    renderReports();
+  } else {
+    const m = MASTERS.find(x=>x.key===key);
+    document.getElementById('tbTitle').textContent = m.label;
+    renderMasterView(m);
+  }
+  window.scrollTo(0,0);
+  if(after) after();
+}
+function wireGlobalUI(){
+  document.getElementById('hamburger').onclick = ()=>{
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('overlay').classList.add('show');
+  };
+  document.getElementById('overlay').onclick = closeSidebar;
+  document.getElementById('formClose').onclick = closeForm;
+  document.getElementById('formCancel').onclick = closeForm;
+  document.getElementById('confirmClose').onclick = closeConfirm;
+  document.getElementById('confirmCancel').onclick = closeConfirm;
+  document.getElementById('confirmDelete').onclick = onConfirmClick;
+  document.getElementById('formSave').onclick = performSave;
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+/* ---------------- Dashboard ---------------- */
+function renderDashboard(){
+  const c = document.getElementById('content');
+  const lowStockItems = [];
+  ['rawMaterials','packingMaterials'].forEach(key=>{
+    (cache[key]||[]).forEach(r=>{
+      const stock = r.currentStock!=null ? r.currentStock : r.openingStock;
+      if(r.status!=='Inactive' && Number(stock) <= Number(r.minStock)){
+        lowStockItems.push({name:r.name, key});
+      }
+    });
+  });
+
+  let cardsHtml = MASTERS.map(m=>{
+    const items = cache[m.key]||[];
+    const active = items.filter(i=>i.status!=='Inactive').length;
+    return `<div class="stat-card ${active===0?'':''}" data-key="${m.key}">
+      <div class="sc-top"><span class="num">${m.num}</span></div>
+      <h3>${esc(m.label)}</h3>
+      <div class="count">${items.length}</div>
+      <div class="sub">${active} active</div>
+    </div>`;
+  }).join('');
+
+  const purchases = cache.purchases||[];
+  const now = new Date();
+  const monthKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const thisMonth = purchases.filter(p=> String(p.purchaseDate||'').slice(0,7)===monthKey);
+  const monthValue = thisMonth.reduce((s,p)=>s+(Number(p.grandTotal)||0),0);
+  const creditDue = purchases.filter(p=>p.paymentType==='Credit').reduce((s,p)=>s+(Number(p.grandTotal)||0),0);
+
+  c.innerHTML = `
+    <div class="hero">
+      <div class="eyebrow">Master Data · Module 1 &nbsp;+&nbsp; Purchase Management · Module 2</div>
+      <h2>Sundaravalli Cottage Industries</h2>
+      <p>Set up your raw materials, suppliers, products and resources once — every future module (Purchase, Stock, BOM, Manufacturing, Costing, Sales, Reports, WhatsApp) runs on this same data.</p>
+      <div class="quick-actions">
+        <button class="btn btn-sm" id="qaNewPurchase">+ New Purchase</button>
+        <button class="btn btn-sm" id="qaPurchaseList">View Purchases</button>
+        <button class="btn btn-sm" id="qaReports">Purchase Reports</button>
+      </div>
+    </div>
+    ${lowStockItems.length ? `
+    <div class="alert-box">
+      <h4>⚠ LOW STOCK — ${lowStockItems.length} item(s) at or below minimum level</h4>
+      <ul>${lowStockItems.slice(0,8).map(i=>`<li>${esc(i.name)} <span class="mono" style="color:#8A5A16">(${i.key==='rawMaterials'?'Raw Material':'Packing Material'})</span></li>`).join('')}</ul>
+    </div>` : ''}
+    <div class="report-summary">
+      <div class="rs-card"><div class="tl">Total Purchases</div><div class="tv">${purchases.length}</div></div>
+      <div class="rs-card"><div class="tl">This Month</div><div class="tv">₹${monthValue.toFixed(0)}</div></div>
+      <div class="rs-card"><div class="tl">Credit Outstanding</div><div class="tv">₹${creditDue.toFixed(0)}</div></div>
+      <div class="rs-card"><div class="tl">Purchase Returns</div><div class="tv">${(cache.purchaseReturns||[]).length}</div></div>
+    </div>
+    <div class="grid-cards">${cardsHtml}</div>
+  `;
+  c.querySelectorAll('.stat-card').forEach(el=>{
+    el.onclick = ()=> go(el.dataset.key);
+  });
+  document.getElementById('qaNewPurchase').onclick = ()=> go('purchases', ()=>openPurchaseForm(null));
+  document.getElementById('qaPurchaseList').onclick = ()=> go('purchases');
+  document.getElementById('qaReports').onclick = ()=> go('purchaseReports');
+}
+
+/* ---------------- Master list view ---------------- */
+function renderMasterView(m){
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div class="view-head">
+      <div class="vh-left">
+        <div class="eyebrow">${m.num} · Master Data</div>
+        <h2>${esc(m.label)}</h2>
+      </div>
+      <button class="btn btn-primary" id="addBtn">+ Add ${esc(m.singular)}</button>
+    </div>
+    <div class="toolbar">
+      <input type="search" id="searchInput" placeholder="Search ${esc(m.label.toLowerCase())}…" value="${esc(searchQ)}">
+      <select id="statusFilterSel">
+        <option value="All">All Status</option>
+        <option value="Active">Active</option>
+        <option value="Inactive">Inactive</option>
+      </select>
+    </div>
+    <div class="table-wrap" id="tableWrap"></div>
+  `;
+  document.getElementById('addBtn').onclick = ()=> openForm(m.key, null);
+  const si = document.getElementById('searchInput');
+  si.oninput = ()=>{ searchQ = si.value; renderTable(m); };
+  const sf = document.getElementById('statusFilterSel');
+  sf.value = statusFilter;
+  sf.onchange = ()=>{ statusFilter = sf.value; renderTable(m); };
+  renderTable(m);
+}
+
+function filteredRows(m){
+  let rows = (cache[m.key]||[]).slice();
+  if(statusFilter!=='All'){ rows = rows.filter(r=>(r.status||'Active')===statusFilter); }
+  if(searchQ.trim()){
+    const q = searchQ.trim().toLowerCase();
+    rows = rows.filter(r=> m.fields.some(f=>{
+      const v = r[f.key];
+      if(v===undefined||v===null) return false;
+      if(f.key==='supplierId') return supplierName(v).toLowerCase().includes(q);
+      return String(v).toLowerCase().includes(q);
+    }));
+  }
+  if(m.sortDesc){
+    rows.sort((a,b)=> String(b[m.sortDesc]||'').localeCompare(String(a[m.sortDesc]||'')));
+  } else {
+    rows.sort((a,b)=> String(a[m.nameField]||'').localeCompare(String(b[m.nameField]||'')));
+  }
+  return rows;
+}
+
+function renderTable(m){
+  const wrap = document.getElementById('tableWrap');
+  const rows = filteredRows(m);
+  if(rows.length===0){
+    wrap.innerHTML = `<div class="empty-state">
+      <div class="es-icon">📋</div>
+      <h4>No ${esc(m.label.toLowerCase())} found</h4>
+      <p>${searchQ||statusFilter!=='All' ? 'Try clearing your search or filter.' : 'Click "+ Add '+esc(m.singular)+'" to create the first record.'}</p>
+    </div>`;
+    return;
+  }
+  const thead = `<thead><tr>${m.columns.map(c=>`<th>${esc(c.label)}</th>`).join('')}<th>Status</th><th></th></tr></thead>`;
+  const tbody = rows.map(r=>{
+    const tds = m.columns.map(c=>{
+      const val = c.render ? c.render(r) : esc(r[c.key]);
+      return `<td data-label="${esc(c.label)}">${val}</td>`;
+    }).join('');
+    const status = r.status || 'Active';
+    return `<tr>
+      ${tds}
+      <td data-label="Status"><span class="badge ${status==='Active'?'active':'inactive'}">${status}</span></td>
+      <td class="row-actions-cell">
+        <div class="row-actions">
+          <button class="btn btn-ghost btn-sm" data-act="edit" data-id="${r.id}">Edit</button>
+          <button class="btn btn-danger btn-sm" data-act="del" data-id="${r.id}">Delete</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `<table>${thead}<tbody>${tbody}</tbody></table>`;
+  wrap.querySelectorAll('[data-act=edit]').forEach(b=> b.onclick=()=>openForm(m.key, b.dataset.id));
+  wrap.querySelectorAll('[data-act=del]').forEach(b=> b.onclick=()=>openConfirm(m.key, b.dataset.id));
+}
+
+/* ---------------- Form modal ---------------- */
+function openForm(storeKey, id){
+  const m = MASTERS.find(x=>x.key===storeKey);
+  editState = {store:storeKey, id};
+  const record = id ? (cache[storeKey]||[]).find(r=>r.id===id) : null;
+
+  document.getElementById('formTitle').textContent = (id? 'Edit ':'Add ') + m.singular;
+  document.getElementById('formTag').textContent = m.num + ' · ' + m.label;
+
+  const body = document.getElementById('formBody');
+  body.innerHTML = m.fields.map(f=> fieldHtml(f, record)).join('') + statusFieldHtml(record);
+  // wire datalist for text fields with suggestions
+  m.fields.forEach(f=>{
+    if(f.list){
+      const dl = document.createElement('datalist');
+      dl.id = 'dl_'+f.key;
+      dl.innerHTML = f.list.map(v=>`<option value="${esc(v)}">`).join('');
+      body.appendChild(dl);
+    }
+    if(f.type==='select' && typeof f.options==='function'){
+      const sel = body.querySelector(`[name="${f.key}"]`);
+      const opts = f.options();
+      sel.innerHTML = `<option value="">${esc(f.placeholder||'Select')}</option>` + opts.map(o=>`<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('');
+      if(record && record[f.key]!==undefined) sel.value = record[f.key];
+    }
+  });
+  document.getElementById('formBackdrop').style.display='flex';
+  const firstInput = body.querySelector('input,select,textarea');
+  if(firstInput) setTimeout(()=>firstInput.focus(), 50);
+}
+function fieldHtml(f, record){
+  const val = record ? (record[f.key]!==undefined? record[f.key] : '') : '';
+  const reqStar = f.required? ' <span class="req">*</span>':'';
+  let input='';
+  if(f.type==='textarea'){
+    input = `<textarea name="${f.key}">${esc(val)}</textarea>`;
+  } else if(f.type==='select'){
+    if(typeof f.options==='function'){
+      input = `<select name="${f.key}"></select>`; // populated after insert
+    } else {
+      const opts = f.options();
+      input = `<select name="${f.key}"><option value="">${esc(f.placeholder||'Select')}</option>${opts.map(o=>`<option value="${esc(o.value)}" ${o.value===val?'selected':''}>${esc(o.label)}</option>`).join('')}</select>`;
+    }
+  } else {
+    const extra = [];
+    if(f.min!==undefined) extra.push(`min="${f.min}"`);
+    if(f.max!==undefined) extra.push(`max="${f.max}"`);
+    if(f.step) extra.push(`step="${f.step}"`);
+    if(f.pattern) extra.push(`pattern="${f.pattern}"`);
+    if(f.list) extra.push(`list="dl_${f.key}"`);
+    input = `<input type="${f.type}" name="${f.key}" value="${esc(val)}" ${extra.join(' ')}>`;
+  }
+  return `<div class="field" data-field="${f.key}">
+    <label>${esc(f.label)}${reqStar}</label>
+    ${input}
+    <div class="err"></div>
+  </div>`;
+}
+function statusFieldHtml(record){
+  const status = record ? (record.status||'Active') : 'Active';
+  return `<div class="field" data-field="status">
+    <label>Status</label>
+    <div class="status-toggle">
+      <label class="opt-active"><input type="radio" name="__status" value="Active" ${status==='Active'?'checked':''}><span>Active</span></label>
+      <label class="opt-inactive"><input type="radio" name="__status" value="Inactive" ${status==='Inactive'?'checked':''}><span>Inactive</span></label>
+    </div>
+  </div>`;
+}
+function closeForm(){ document.getElementById('formBackdrop').style.display='none'; }
+
+async function performSave(){
+  const m = MASTERS.find(x=>x.key===editState.store);
+  const body = document.getElementById('formBody');
+  let valid = true;
+  const data = {};
+
+  // clear old errors
+  body.querySelectorAll('.field').forEach(f=>f.classList.remove('has-error'));
+
+  m.fields.forEach(f=>{
+    const el = body.querySelector(`[name="${f.key}"]`);
+    let v = el.value;
+    const fieldWrap = body.querySelector(`.field[data-field="${f.key}"]`);
+    if(f.required && !v.trim()){
+      showFieldError(fieldWrap, `${f.label} is required.`);
+      valid = false; return;
+    }
+    if(f.type==='number' && v!==''){
+      if(f.min!==undefined && Number(v) < f.min){ showFieldError(fieldWrap, `Must be ${f.min} or more.`); valid=false; return; }
+      if(f.max!==undefined && Number(v) > f.max){ showFieldError(fieldWrap, `Must be ${f.max} or less.`); valid=false; return; }
+    }
+    if(f.pattern && v.trim() && !(new RegExp(f.pattern).test(v.trim()))){
+      showFieldError(fieldWrap, f.patternMsg || 'Invalid value.');
+      valid=false; return;
+    }
+    data[f.key] = f.type==='number' ? (v===''? '' : Number(v)) : v.trim();
+  });
+
+  // duplicate name check (case-insensitive, excluding self)
+  const dupField = m.nameField;
+  const dupVal = String(data[dupField]||'').trim().toLowerCase();
+  if(dupVal){
+    const clash = (cache[m.key]||[]).some(r=> r.id!==editState.id && String(r[dupField]||'').trim().toLowerCase()===dupVal);
+    if(clash){
+      const wrap = body.querySelector(`.field[data-field="${dupField}"]`);
+      showFieldError(wrap, `A ${m.singular.toLowerCase()} with this ${m.dupKeyLabel.toLowerCase()} already exists.`);
+      valid=false;
+    }
+  }
+
+  if(!valid){ toast('Please fix the highlighted fields.', true); return; }
+
+  const statusVal = body.querySelector('input[name="__status"]:checked').value;
+  data.status = statusVal;
+
+  const now = Date.now();
+  let record;
+  if(editState.id){
+    record = (cache[m.key]||[]).find(r=>r.id===editState.id);
+    record = Object.assign({}, record, data, {updatedAt:now});
+  } else {
+    record = Object.assign({id:uid(), createdAt:now, updatedAt:now}, data);
+  }
+  try{
+    await dbPut(m.key, record);
+    cache[m.key] = await dbGetAll(m.key);
+    closeForm();
+    toast(`${m.singular} ${editState.id? 'updated':'added'}.`);
+    renderMasterView(m);
+    if(currentKey===null) renderDashboard();
+  }catch(e){
+    toast('Could not save. Please try again.', true);
+  }
+}
+function showFieldError(fieldWrap, msg){
+  fieldWrap.classList.add('has-error');
+  fieldWrap.querySelector('.err').textContent = msg;
+}
+
+/* ---------------- Delete confirm ---------------- */
+function openConfirm(storeKey, id){
+  const m = MASTERS.find(x=>x.key===storeKey);
+  const record = (cache[storeKey]||[]).find(r=>r.id===id);
+  deleteState = {store:storeKey, id};
+  document.getElementById('confirmText').textContent =
+    `Delete "${record ? record[m.nameField] : 'this record'}" from ${m.label}? This cannot be undone.`;
+  document.getElementById('confirmBackdrop').style.display='flex';
+}
+let genericConfirmCb = null;
+function openConfirmGeneric(msg, cb){
+  document.getElementById('confirmText').textContent = msg;
+  genericConfirmCb = cb;
+  document.getElementById('confirmBackdrop').style.display='flex';
+}
+function closeConfirm(){
+  document.getElementById('confirmBackdrop').style.display='none';
+  genericConfirmCb = null;
+}
+function onConfirmClick(){
+  if(genericConfirmCb){
+    const cb = genericConfirmCb;
+    genericConfirmCb = null;
+    document.getElementById('confirmBackdrop').style.display='none';
+    cb();
+  } else {
+    performDelete();
+  }
+}
+async function performDelete(){
+  const {store, id} = deleteState;
+  const m = MASTERS.find(x=>x.key===store);
+  try{
+    await dbDelete(store, id);
+    cache[store] = await dbGetAll(store);
+    closeConfirm();
+    toast(`${m.singular} deleted.`);
+    renderMasterView(m);
+    if(currentKey===null) renderDashboard();
+  }catch(e){
+    toast('Could not delete. Please try again.', true);
+  }
+}
+
+/* ============================================================
+   MODULE 2 — PURCHASE MANAGEMENT
+   ============================================================ */
+
+/* ---------- shared helpers ---------- */
+function getMaterial(type, id){ return (cache[type]||[]).find(x=>x.id===id); }
+function materialLabel(type,id){ const m=getMaterial(type,id); return m? m.name : '—'; }
+function unitOf(type,id){ const m=getMaterial(type,id); return m? m.unit : ''; }
+function getMaterialOptions(){
+  const rm = (cache.rawMaterials||[]).filter(m=>m.status!=='Inactive').map(m=>({value:'rawMaterials:'+m.id, label:m.name, type:'rawMaterials', id:m.id, unit:m.unit, rate:m.purchaseRate||m.avgCost||0}));
+  const pm = (cache.packingMaterials||[]).filter(m=>m.status!=='Inactive').map(m=>({value:'packingMaterials:'+m.id, label:m.name, type:'packingMaterials', id:m.id, unit:m.unit, rate:m.purchaseRate||m.avgCost||0}));
+  return {rm, pm};
+}
+function computeLine(row){
+  const qty = Number(row.qty)||0, rate = Number(row.rate)||0;
+  const base = qty*rate;
+  const discAmt = base*(Number(row.discountPct)||0)/100;
+  const taxable = base-discAmt;
+  const taxAmt = taxable*(Number(row.gstPct)||0)/100;
+  const lineTotal = taxable+taxAmt;
+  return {base, discAmt, taxAmt, lineTotal, taxable};
+}
+function paymentStatus(p){
+  if(p.paymentType==='Credit') return {label:'Credit · Due '+(p.dueDate||'—'), cls:'inactive'};
+  return {label:'Paid ('+p.paymentType+')', cls:'active'};
+}
+function isLocked(purchase){
+  return (purchase.items||[]).some(i=>(Number(i.consumedQty)||0) > 0);
+}
+async function nextSeq(name, prefix, pad){
+  if(!cache.counters) cache.counters = await dbGetAll('counters');
+  let c = cache.counters.find(x=>x.id===name);
+  const seq = c ? c.seq+1 : 1;
+  await dbPut('counters', {id:name, seq});
+  if(c) c.seq = seq; else cache.counters.push({id:name, seq});
+  return prefix+'-'+String(seq).padStart(pad,'0');
+}
+async function logAudit(action, entity, entityId, refNo, summary){
+  await dbPut('auditLog', {id:uid(), ts:Date.now(), action, entity, entityId, refNo, summary});
+  cache.auditLog = await dbGetAll('auditLog');
+}
+async function applyStockDelta(item, sign, meta){
+  const mat = getMaterial(item.itemType, item.itemId);
+  if(!mat) return;
+  const costBasis = Number(item.rate)*(1-(Number(item.discountPct)||0)/100);
+  const curQty = Number(mat.currentStock)||0, curCost = Number(mat.avgCost)||0;
+  const newQtyRaw = curQty + sign*Number(item.qty);
+  const newValue = curQty*curCost + sign*Number(item.qty)*costBasis;
+  const safeQty = Math.max(0, round2(newQtyRaw));
+  mat.currentStock = safeQty;
+  mat.avgCost = safeQty>0 ? round2(newValue/safeQty) : 0;
+  mat.updatedAt = Date.now();
+  await dbPut(item.itemType, mat);
+  const movement = {
+    id:uid(), ts:Date.now(), itemType:item.itemType, itemId:item.itemId, itemName:item.itemName||mat.name,
+    qtyChange: round2(sign*Number(item.qty)), reason:meta.reason, refType:meta.refType, refId:meta.refId,
+    refNo:meta.refNo, balanceAfter:mat.currentStock, avgCostAfter:mat.avgCost
+  };
+  await dbPut('stockMovements', movement);
+  cache[item.itemType] = await dbGetAll(item.itemType);
+  cache.stockMovements = await dbGetAll('stockMovements');
+}
+function csvDownload(filename, rows){
+  const csv = rows.map(r=> r.map(c=>{
+    const s = String(c==null?'':c);
+    return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+  }).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+function doPrint(html){
+  document.getElementById('printArea').innerHTML = html;
+  setTimeout(()=> window.print(), 50);
+}
+
+/* ---------- Purchase Entry state ---------- */
+let pfState = {id:null, items:[]};
+
+function newRow(){
+  return {rowId:uid(), itemType:'', itemId:'', itemName:'', unit:'', qty:'', rate:'', discountPct:0, gstPct:0, consumedQty:0, returnedQty:0};
+}
+
+function openPurchaseForm(editId){
+  const p = editId ? (cache.purchases||[]).find(x=>x.id===editId) : null;
+  if(editId && !p){ toast('Purchase not found.', true); return; }
+  if(editId && isLocked(p)){
+    toast('This purchase has consumed stock in manufacturing and cannot be edited.', true);
+    return;
+  }
+  pfState.id = editId || null;
+  pfState.items = p ? p.items.map(i=>Object.assign({rowId:i.id}, i)) : [newRow()];
+
+  const suppliers = (cache.suppliers||[]).filter(s=>s.status!=='Inactive');
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div class="view-head">
+      <div class="vh-left">
+        <div class="eyebrow">T1 · Purchases</div>
+        <h2>${editId? 'Edit Purchase '+esc(p.purchaseNo) : 'New Purchase Entry'}</h2>
+      </div>
+      <button class="btn btn-ghost" id="pfBack">← Back to List</button>
+    </div>
+
+    <div class="panel">
+      <h4>Purchase Details</h4>
+      <div class="form-grid">
+        <div class="field"><label>Purchase Number</label><input type="text" value="${editId? esc(p.purchaseNo): 'Auto-generated on save'}" disabled></div>
+        <div class="field"><label>Purchase Date <span class="req">*</span></label><input type="date" id="pf_purchaseDate" value="${p? p.purchaseDate : todayISO()}"></div>
+        <div class="field"><label>Supplier <span class="req">*</span></label>
+          <select id="pf_supplierId">
+            <option value="">Select supplier</option>
+            ${suppliers.map(s=>`<option value="${s.id}" ${p&&p.supplierId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Invoice Number <span class="req">*</span></label><input type="text" id="pf_invoiceNo" value="${p? esc(p.invoiceNo):''}"></div>
+        <div class="field"><label>Invoice Date</label><input type="date" id="pf_invoiceDate" value="${p? p.invoiceDate||'':''}"></div>
+        <div class="field"><label>Payment Type <span class="req">*</span></label>
+          <select id="pf_paymentType" onchange="toggleDueDate()">
+            <option value="">Select</option>
+            ${['Cash','Credit','UPI','Bank'].map(t=>`<option value="${t}" ${p&&p.paymentType===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Due Date (for Credit)</label><input type="date" id="pf_dueDate" value="${p? p.dueDate||'':''}"></div>
+      </div>
+      <div class="field" style="margin-top:14px;"><label>Remarks</label><textarea id="pf_remarks">${p? esc(p.remarks||''):''}</textarea></div>
+    </div>
+
+    <div class="panel">
+      <h4>Item Details</h4>
+      <div class="item-grid-wrap">
+        <table class="item-grid">
+          <thead><tr>
+            <th>Material</th><th>Unit</th><th>Qty</th><th>Rate (₹)</th><th>Disc %</th><th>GST %</th>
+            <th>Tax Amt</th><th>Line Total</th><th></th>
+          </tr></thead>
+          <tbody id="pfItemsBody"></tbody>
+        </table>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="pfAddItem">+ Add Item</button>
+    </div>
+
+    <div class="totals-bar">
+      <div class="ti"><div class="tl">Total Qty</div><div class="tv" id="sumQty">0</div></div>
+      <div class="ti"><div class="tl">Sub Total</div><div class="tv" id="sumSub">₹0.00</div></div>
+      <div class="ti"><div class="tl">Discount</div><div class="tv" id="sumDisc">₹0.00</div></div>
+      <div class="ti"><div class="tl">GST</div><div class="tv" id="sumGst">₹0.00</div></div>
+      <div class="ti"><div class="tl">Other Charges</div><input type="number" id="otherCharges" min="0" value="${p? p.otherCharges||0:0}" oninput="updateHeaderTotals()"></div>
+      <div class="ti grand"><div class="tl">Grand Total</div><div class="tv" id="sumGrand">₹0.00</div></div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-ghost" id="pfCancel">Cancel</button>
+      <button class="btn btn-primary" id="pfSave">Save Purchase</button>
+    </div>
+  `;
+  document.getElementById('pfBack').onclick = ()=> renderPurchaseList();
+  document.getElementById('pfCancel').onclick = ()=> renderPurchaseList();
+  document.getElementById('pfAddItem').onclick = ()=>{ pfState.items.push(newRow()); rerenderItemsTable(); };
+  document.getElementById('pfSave').onclick = performSavePurchase;
+  rerenderItemsTable();
+  window.toggleDueDate = function(){
+    const pt = document.getElementById('pf_paymentType').value;
+    document.getElementById('pf_dueDate').disabled = pt!=='Credit';
+  };
+  window.toggleDueDate();
+}
+function todayISO(){ const d=new Date(); return d.toISOString().slice(0,10); }
+
+function rerenderItemsTable(){
+  const body = document.getElementById('pfItemsBody');
+  const {rm, pm} = getMaterialOptions();
+  body.innerHTML = pfState.items.map(row=>{
+    const locked = (Number(row.consumedQty)||0) > 0;
+    const selVal = row.itemType && row.itemId ? row.itemType+':'+row.itemId : '';
+    return `<tr data-row="${row.rowId}">
+      <td>
+        <select onchange="onMaterialChange('${row.rowId}', this.value)" ${locked?'disabled':''}>
+          <option value="">Select material</option>
+          <optgroup label="Raw Materials">${rm.map(o=>`<option value="${o.value}" ${selVal===o.value?'selected':''}>${esc(o.label)}</option>`).join('')}</optgroup>
+          <optgroup label="Packing Materials">${pm.map(o=>`<option value="${o.value}" ${selVal===o.value?'selected':''}>${esc(o.label)}</option>`).join('')}</optgroup>
+        </select>
+      </td>
+      <td><span class="num-readout">${esc(row.unit||'—')}</span></td>
+      <td><input type="number" min="0" step="any" value="${row.qty}" oninput="onLineInput('${row.rowId}','qty',this.value)" ${locked?'disabled':''}></td>
+      <td><input type="number" min="0" step="any" value="${row.rate}" oninput="onLineInput('${row.rowId}','rate',this.value)" ${locked?'disabled':''}></td>
+      <td><input type="number" min="0" max="100" step="any" value="${row.discountPct}" oninput="onLineInput('${row.rowId}','discountPct',this.value)" ${locked?'disabled':''}></td>
+      <td><input type="number" min="0" max="100" step="any" value="${row.gstPct}" oninput="onLineInput('${row.rowId}','gstPct',this.value)" ${locked?'disabled':''}></td>
+      <td><span class="num-readout" id="tax_${row.rowId}">₹${computeLine(row).taxAmt.toFixed(2)}</span></td>
+      <td><span class="num-readout" id="line_${row.rowId}">₹${computeLine(row).lineTotal.toFixed(2)}</span></td>
+      <td><button class="row-remove" onclick="removeRow('${row.rowId}')" ${locked?'disabled title="Consumed in manufacturing"':''}>&times;</button></td>
+    </tr>`;
+  }).join('');
+  updateHeaderTotals();
+}
+window.onMaterialChange = function(rowId, value){
+  const row = pfState.items.find(r=>r.rowId===rowId);
+  if(!value){ row.itemType=''; row.itemId=''; row.itemName=''; row.unit=''; rerenderItemsTable(); return; }
+  const [type,id] = value.split(':');
+  const mat = getMaterial(type,id);
+  row.itemType = type; row.itemId = id; row.itemName = mat.name; row.unit = mat.unit;
+  if(!row.rate) row.rate = mat.purchaseRate || mat.avgCost || '';
+  rerenderItemsTable();
+};
+window.onLineInput = function(rowId, field, value){
+  const row = pfState.items.find(r=>r.rowId===rowId);
+  row[field] = value;
+  const c = computeLine(row);
+  const t1 = document.getElementById('tax_'+rowId), t2 = document.getElementById('line_'+rowId);
+  if(t1) t1.textContent = '₹'+c.taxAmt.toFixed(2);
+  if(t2) t2.textContent = '₹'+c.lineTotal.toFixed(2);
+  updateHeaderTotals();
+};
+window.removeRow = function(rowId){
+  const row = pfState.items.find(r=>r.rowId===rowId);
+  if(row && (Number(row.consumedQty)||0) > 0){ toast('This line has been consumed in manufacturing and cannot be removed.', true); return; }
+  if(pfState.items.length<=1){ toast('At least one item line is required.', true); return; }
+  pfState.items = pfState.items.filter(r=>r.rowId!==rowId);
+  rerenderItemsTable();
+};
+function setText(id,val){ const el=document.getElementById(id); if(el) el.textContent = val; }
+window.updateHeaderTotals = function(){
+  let tq=0, sub=0, disc=0, gst=0;
+  pfState.items.forEach(r=>{ const c=computeLine(r); tq+=Number(r.qty)||0; sub+=c.base; disc+=c.discAmt; gst+=c.taxAmt; });
+  const otherEl = document.getElementById('otherCharges');
+  const other = otherEl ? (Number(otherEl.value)||0) : 0;
+  const grand = sub-disc+gst+other;
+  setText('sumQty', tq);
+  setText('sumSub', '₹'+sub.toFixed(2));
+  setText('sumDisc', '₹'+disc.toFixed(2));
+  setText('sumGst', '₹'+gst.toFixed(2));
+  setText('sumGrand', '₹'+grand.toFixed(2));
+};
+
+async function performSavePurchase(){
+  const purchaseDate = document.getElementById('pf_purchaseDate').value;
+  const supplierId = document.getElementById('pf_supplierId').value;
+  const invoiceNo = document.getElementById('pf_invoiceNo').value.trim();
+  const invoiceDate = document.getElementById('pf_invoiceDate').value;
+  const paymentType = document.getElementById('pf_paymentType').value;
+  const dueDate = document.getElementById('pf_dueDate').value;
+  const remarks = document.getElementById('pf_remarks').value.trim();
+  const otherCharges = Number(document.getElementById('otherCharges').value)||0;
+
+  if(!purchaseDate){ toast('Purchase date is required.', true); return; }
+  if(!supplierId){ toast('Supplier is required.', true); return; }
+  if(!invoiceNo){ toast('Invoice number is required.', true); return; }
+  if(!paymentType){ toast('Payment type is required.', true); return; }
+  if(paymentType==='Credit' && !dueDate){ toast('Due date is required for credit purchases.', true); return; }
+
+  const validRows = pfState.items.filter(r=>r.itemType && r.itemId);
+  if(validRows.length===0){ toast('Add at least one item.', true); return; }
+  for(const r of validRows){
+    if(!(Number(r.qty) > 0)){ toast(`Quantity for ${r.itemName} must be greater than 0.`, true); return; }
+    if(Number(r.rate) < 0){ toast(`Rate for ${r.itemName} cannot be negative.`, true); return; }
+    if(Number(r.discountPct)<0 || Number(r.discountPct)>100){ toast(`Discount % for ${r.itemName} must be 0–100.`, true); return; }
+    if(Number(r.gstPct)<0 || Number(r.gstPct)>100){ toast(`GST % for ${r.itemName} must be 0–100.`, true); return; }
+  }
+
+  const dupInvoice = (cache.purchases||[]).some(p=> p.id!==pfState.id && p.supplierId===supplierId && String(p.invoiceNo).trim().toLowerCase()===invoiceNo.toLowerCase());
+  if(dupInvoice){ toast('This invoice number already exists for this supplier.', true); return; }
+
+  let original = null;
+  if(pfState.id){
+    original = (cache.purchases||[]).find(x=>x.id===pfState.id);
+    if(original && isLocked(original)){ toast('This purchase has consumed stock and cannot be edited.', true); return; }
+  }
+
+  const items = validRows.map(r=>{
+    const c = computeLine(r);
+    return {
+      id: r.rowId, itemType:r.itemType, itemId:r.itemId, itemName:r.itemName, unit:r.unit,
+      qty:Number(r.qty), rate:Number(r.rate), discountPct:Number(r.discountPct)||0, discountAmt:round2(c.discAmt),
+      gstPct:Number(r.gstPct)||0, taxAmt:round2(c.taxAmt), lineTotal:round2(c.lineTotal),
+      consumedQty:Number(r.consumedQty)||0, returnedQty:Number(r.returnedQty)||0
+    };
+  });
+  const totalQty = items.reduce((s,i)=>s+i.qty,0);
+  const subTotal = round2(items.reduce((s,i)=>s+i.qty*i.rate,0));
+  const totalDiscount = round2(items.reduce((s,i)=>s+i.discountAmt,0));
+  const totalGst = round2(items.reduce((s,i)=>s+i.taxAmt,0));
+  const grandTotal = round2(subTotal - totalDiscount + totalGst + otherCharges);
+
+  const now = Date.now();
+  let purchaseNo = original ? original.purchaseNo : await nextSeq('purchase','PUR',4);
+  const record = {
+    id: pfState.id || uid(), purchaseNo, purchaseDate, supplierId, invoiceNo, invoiceDate, paymentType, dueDate, remarks,
+    items, totalQty, subTotal, totalDiscount, totalGst, otherCharges, grandTotal,
+    createdAt: original ? original.createdAt : now, updatedAt: now
+  };
+
+  try{
+    if(original){
+      for(const it of original.items){
+        await applyStockDelta(it, -1, {reason:'Purchase Edit — Reverse', refType:'purchase', refId:record.id, refNo:record.purchaseNo});
+      }
+    }
+    await dbPut('purchases', record);
+    for(const it of items){
+      await applyStockDelta(it, +1, {reason: original? 'Purchase Edit — Apply' : 'Purchase', refType:'purchase', refId:record.id, refNo:record.purchaseNo});
+    }
+    cache.purchases = await dbGetAll('purchases');
+    await logAudit(original?'EDIT':'CREATE', 'Purchase', record.id, record.purchaseNo, `${original?'Edited':'Created'} purchase ${record.purchaseNo} — ₹${grandTotal.toFixed(2)}`);
+    toast(`Purchase ${record.purchaseNo} ${original?'updated':'saved'}.`);
+    renderPurchaseList();
+    if(currentKey===null) renderDashboard();
+  }catch(e){
+    toast('Could not save purchase. Please try again.', true);
+  }
+}
+
+/* ---------- Purchase List ---------- */
+let pListFilters = {q:'', supplierId:'', from:'', to:'', paymentType:''};
+function renderPurchaseList(){
+  const c = document.getElementById('content');
+  const suppliers = (cache.suppliers||[]).filter(s=>s.status!=='Inactive');
+  c.innerHTML = `
+    <div class="view-head">
+      <div class="vh-left"><div class="eyebrow">T1 · Transactions</div><h2>Purchases</h2></div>
+      <button class="btn btn-primary" id="newPurchaseBtn">+ New Purchase</button>
+    </div>
+    <div class="filters-row">
+      <input type="search" id="plq" placeholder="Search purchase no / invoice…" value="${esc(pListFilters.q)}">
+      <select id="plSupplier"><option value="">All Suppliers</option>${suppliers.map(s=>`<option value="${s.id}" ${pListFilters.supplierId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>
+      <span class="fr-label">From</span><input type="date" id="plFrom" value="${pListFilters.from}">
+      <span class="fr-label">To</span><input type="date" id="plTo" value="${pListFilters.to}">
+      <select id="plPayType">
+        <option value="">All Payment Types</option>
+        ${['Cash','Credit','UPI','Bank'].map(t=>`<option value="${t}" ${pListFilters.paymentType===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>
+    <div class="table-wrap" id="plTableWrap"></div>
+  `;
+  document.getElementById('newPurchaseBtn').onclick = ()=> openPurchaseForm(null);
+  const wire = (id,key)=>{ document.getElementById(id).oninput = document.getElementById(id).onchange = (e)=>{ pListFilters[key]=e.target.value; renderPurchaseTable(); }; };
+  wire('plq','q'); wire('plSupplier','supplierId'); wire('plFrom','from'); wire('plTo','to'); wire('plPayType','paymentType');
+  renderPurchaseTable();
+}
+function renderPurchaseTable(){
+  const wrap = document.getElementById('plTableWrap');
+  let rows = (cache.purchases||[]).slice();
+  if(pListFilters.q.trim()){
+    const q = pListFilters.q.trim().toLowerCase();
+    rows = rows.filter(p=> p.purchaseNo.toLowerCase().includes(q) || String(p.invoiceNo).toLowerCase().includes(q));
+  }
+  if(pListFilters.supplierId) rows = rows.filter(p=>p.supplierId===pListFilters.supplierId);
+  if(pListFilters.from) rows = rows.filter(p=>p.purchaseDate >= pListFilters.from);
+  if(pListFilters.to) rows = rows.filter(p=>p.purchaseDate <= pListFilters.to);
+  if(pListFilters.paymentType) rows = rows.filter(p=>p.paymentType===pListFilters.paymentType);
+  rows.sort((a,b)=> (b.purchaseDate||'').localeCompare(a.purchaseDate||'') || b.createdAt-a.createdAt);
+
+  if(rows.length===0){
+    wrap.innerHTML = `<div class="empty-state"><div class="es-icon">🧾</div><h4>No purchases found</h4><p>Try adjusting filters, or click "+ New Purchase".</p></div>`;
+    return;
+  }
+  const thead = `<thead><tr><th>Purchase No</th><th>Date</th><th>Supplier</th><th>Invoice No</th><th>Grand Total</th><th>Payment Status</th><th></th></tr></thead>`;
+  const tbody = rows.map(p=>{
+    const st = paymentStatus(p);
+    const locked = isLocked(p);
+    return `<tr>
+      <td data-label="Purchase No" class="mono">${esc(p.purchaseNo)}</td>
+      <td data-label="Date">${esc(p.purchaseDate)}</td>
+      <td data-label="Supplier">${esc(materialSupplierName(p.supplierId))}</td>
+      <td data-label="Invoice No">${esc(p.invoiceNo)}</td>
+      <td data-label="Grand Total" class="mono">₹${Number(p.grandTotal).toFixed(2)}</td>
+      <td data-label="Status"><span class="badge ${st.cls}">${st.label}</span></td>
+      <td class="row-actions-cell">
+        <div class="row-actions">
+          <button class="btn btn-ghost btn-sm" data-act="view" data-id="${p.id}">View</button>
+          <button class="btn btn-ghost btn-sm" data-act="edit" data-id="${p.id}" ${locked?'disabled title="Locked: stock consumed"':''}>Edit</button>
+          <button class="btn btn-ghost btn-sm" data-act="print" data-id="${p.id}">Print</button>
+          <button class="btn btn-danger btn-sm" data-act="del" data-id="${p.id}" ${locked?'disabled title="Locked: stock consumed"':''}>Delete</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `<table>${thead}<tbody>${tbody}</tbody></table>`;
+  wrap.querySelectorAll('[data-act=view]').forEach(b=> b.onclick=()=>renderPurchaseView(b.dataset.id));
+  wrap.querySelectorAll('[data-act=edit]').forEach(b=> b.onclick=()=>openPurchaseForm(b.dataset.id));
+  wrap.querySelectorAll('[data-act=print]').forEach(b=> b.onclick=()=>printPurchase(b.dataset.id));
+  wrap.querySelectorAll('[data-act=del]').forEach(b=> b.onclick=()=>confirmDeletePurchase(b.dataset.id));
+}
+function materialSupplierName(id){ return supplierName(id); }
+
+function confirmDeletePurchase(id){
+  const p = (cache.purchases||[]).find(x=>x.id===id);
+  if(!p) return;
+  if(isLocked(p)){ toast('This purchase has consumed stock in manufacturing and cannot be deleted.', true); return; }
+  openConfirmGeneric(`Delete purchase "${p.purchaseNo}" (₹${Number(p.grandTotal).toFixed(2)})? Stock will be reversed. This cannot be undone.`, async ()=>{
+    try{
+      for(const it of p.items){
+        await applyStockDelta(it, -1, {reason:'Purchase Delete', refType:'purchase', refId:p.id, refNo:p.purchaseNo});
+      }
+      await dbDelete('purchases', id);
+      cache.purchases = await dbGetAll('purchases');
+      await logAudit('DELETE','Purchase', id, p.purchaseNo, `Deleted purchase ${p.purchaseNo} — ₹${Number(p.grandTotal).toFixed(2)} (stock reversed)`);
+      toast(`Purchase ${p.purchaseNo} deleted.`);
+      renderPurchaseList();
+      if(currentKey===null) renderDashboard();
+    }catch(e){
+      toast('Could not delete purchase.', true);
+    }
+  });
+}
+
+function renderPurchaseView(id){
+  const p = (cache.purchases||[]).find(x=>x.id===id);
+  if(!p){ toast('Purchase not found.', true); return; }
+  const st = paymentStatus(p);
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div class="view-head">
+      <div class="vh-left"><div class="eyebrow">T1 · Purchases</div><h2>${esc(p.purchaseNo)}</h2></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" id="pvBack">← Back</button>
+        <button class="btn btn-ghost" id="pvPrint">Print</button>
+        <button class="btn btn-primary" id="pvEdit" ${isLocked(p)?'disabled':''}>Edit</button>
+      </div>
+    </div>
+    <div class="detail-card">
+      <div class="dc-grid">
+        <div class="dc-item"><div class="dl">Date</div><div class="dv">${esc(p.purchaseDate)}</div></div>
+        <div class="dc-item"><div class="dl">Supplier</div><div class="dv">${esc(supplierName(p.supplierId))}</div></div>
+        <div class="dc-item"><div class="dl">Invoice No</div><div class="dv">${esc(p.invoiceNo)}</div></div>
+        <div class="dc-item"><div class="dl">Invoice Date</div><div class="dv">${esc(p.invoiceDate||'—')}</div></div>
+        <div class="dc-item"><div class="dl">Payment</div><div class="dv"><span class="badge ${st.cls}">${st.label}</span></div></div>
+      </div>
+      ${p.remarks? `<div class="dc-item"><div class="dl">Remarks</div><div class="dv" style="font-weight:400;">${esc(p.remarks)}</div></div>`:''}
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Material</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Disc %</th><th>GST %</th><th>Tax</th><th>Line Total</th></tr></thead>
+        <tbody>${p.items.map(i=>`<tr>
+          <td data-label="Material">${esc(i.itemName)}</td>
+          <td data-label="Unit">${esc(i.unit)}</td>
+          <td data-label="Qty">${i.qty}</td>
+          <td data-label="Rate">₹${Number(i.rate).toFixed(2)}</td>
+          <td data-label="Disc %">${i.discountPct}%</td>
+          <td data-label="GST %">${i.gstPct}%</td>
+          <td data-label="Tax">₹${Number(i.taxAmt).toFixed(2)}</td>
+          <td data-label="Line Total">₹${Number(i.lineTotal).toFixed(2)}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <div class="totals-bar">
+      <div class="ti"><div class="tl">Total Qty</div><div class="tv">${p.totalQty}</div></div>
+      <div class="ti"><div class="tl">Sub Total</div><div class="tv">₹${Number(p.subTotal).toFixed(2)}</div></div>
+      <div class="ti"><div class="tl">Discount</div><div class="tv">₹${Number(p.totalDiscount).toFixed(2)}</div></div>
+      <div class="ti"><div class="tl">GST</div><div class="tv">₹${Number(p.totalGst).toFixed(2)}</div></div>
+      <div class="ti"><div class="tl">Other Charges</div><div class="tv">₹${Number(p.otherCharges).toFixed(2)}</div></div>
+      <div class="ti grand"><div class="tl">Grand Total</div><div class="tv">₹${Number(p.grandTotal).toFixed(2)}</div></div>
+    </div>
+  `;
+  document.getElementById('pvBack').onclick = ()=> renderPurchaseList();
+  document.getElementById('pvPrint').onclick = ()=> printPurchase(p.id);
+  document.getElementById('pvEdit').onclick = ()=> openPurchaseForm(p.id);
+}
+
+function printPurchase(id){
+  const p = (cache.purchases||[]).find(x=>x.id===id);
+  if(!p) return;
+  const html = `
+    <h2>Sundaravalli Cottage Industries</h2>
+    <div class="p-sub">Purchase Invoice — ${esc(p.purchaseNo)}</div>
+    <table style="margin-bottom:14px;">
+      <tr><td><strong>Date</strong></td><td>${esc(p.purchaseDate)}</td><td><strong>Supplier</strong></td><td>${esc(supplierName(p.supplierId))}</td></tr>
+      <tr><td><strong>Invoice No</strong></td><td>${esc(p.invoiceNo)}</td><td><strong>Payment</strong></td><td>${esc(p.paymentType)}${p.paymentType==='Credit'?' (Due '+esc(p.dueDate)+')':''}</td></tr>
+    </table>
+    <table>
+      <thead><tr><th>Material</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Disc %</th><th>GST %</th><th>Tax</th><th>Line Total</th></tr></thead>
+      <tbody>${p.items.map(i=>`<tr><td>${esc(i.itemName)}</td><td>${esc(i.unit)}</td><td>${i.qty}</td><td>₹${Number(i.rate).toFixed(2)}</td><td>${i.discountPct}%</td><td>${i.gstPct}%</td><td>₹${Number(i.taxAmt).toFixed(2)}</td><td>₹${Number(i.lineTotal).toFixed(2)}</td></tr>`).join('')}</tbody>
+    </table>
+    <div class="p-totals">
+      Total Qty: ${p.totalQty} &nbsp; | &nbsp; Sub Total: ₹${Number(p.subTotal).toFixed(2)} &nbsp; | &nbsp; Discount: ₹${Number(p.totalDiscount).toFixed(2)} &nbsp; | &nbsp;
+      GST: ₹${Number(p.totalGst).toFixed(2)} &nbsp; | &nbsp; Other: ₹${Number(p.otherCharges).toFixed(2)} &nbsp; | &nbsp;
+      <strong>Grand Total: ₹${Number(p.grandTotal).toFixed(2)}</strong>
+    </div>
+  `;
+  doPrint(html);
+}
+
+/* ---------- Purchase Returns ---------- */
+function renderReturnList(){
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div class="view-head">
+      <div class="vh-left"><div class="eyebrow">T2 · Transactions</div><h2>Purchase Returns</h2></div>
+      <button class="btn btn-primary" id="newReturnBtn">+ New Return</button>
+    </div>
+    <div class="table-wrap" id="retTableWrap"></div>
+  `;
+  document.getElementById('newReturnBtn').onclick = renderReturnForm;
+  const rows = (cache.purchaseReturns||[]).slice().sort((a,b)=>b.createdAt-a.createdAt);
+  const wrap = document.getElementById('retTableWrap');
+  if(rows.length===0){
+    wrap.innerHTML = `<div class="empty-state"><div class="es-icon">↩️</div><h4>No purchase returns yet</h4><p>Click "+ New Return" to record one.</p></div>`;
+    return;
+  }
+  const thead = `<thead><tr><th>Return No</th><th>Date</th><th>Purchase No</th><th>Supplier</th><th>Material</th><th>Qty Returned</th><th>Reason</th><th></th></tr></thead>`;
+  const tbody = rows.map(r=>`<tr>
+    <td data-label="Return No" class="mono">${esc(r.returnNo)}</td>
+    <td data-label="Date">${esc(r.date)}</td>
+    <td data-label="Purchase No">${esc(r.purchaseNo)}</td>
+    <td data-label="Supplier">${esc(supplierName(r.supplierId))}</td>
+    <td data-label="Material">${esc(r.itemName)}</td>
+    <td data-label="Qty">${r.qty}</td>
+    <td data-label="Reason">${esc(r.reason||'—')}</td>
+    <td class="row-actions-cell"><div class="row-actions"><button class="btn btn-danger btn-sm" data-act="del" data-id="${r.id}">Delete</button></div></td>
+  </tr>`).join('');
+  wrap.innerHTML = `<table>${thead}<tbody>${tbody}</tbody></table>`;
+  wrap.querySelectorAll('[data-act=del]').forEach(b=> b.onclick=()=>confirmDeleteReturn(b.dataset.id));
+}
+
+function renderReturnForm(){
+  const purchases = (cache.purchases||[]).slice().sort((a,b)=>b.createdAt-a.createdAt);
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div class="view-head">
+      <div class="vh-left"><div class="eyebrow">T2 · Purchase Returns</div><h2>New Purchase Return</h2></div>
+      <button class="btn btn-ghost" id="rfBack">← Back to List</button>
+    </div>
+    <div class="panel">
+      <div class="form-grid">
+        <div class="field"><label>Purchase Reference <span class="req">*</span></label>
+          <select id="rf_purchaseId" onchange="onReturnPurchaseChange()">
+            <option value="">Select purchase</option>
+            ${purchases.map(p=>`<option value="${p.id}">${esc(p.purchaseNo)} — ${esc(supplierName(p.supplierId))} — ${esc(p.purchaseDate)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Date <span class="req">*</span></label><input type="date" id="rf_date" value="${todayISO()}"></div>
+        <div class="field"><label>Supplier</label><input type="text" id="rf_supplierName" disabled></div>
+        <div class="field"><label>Material <span class="req">*</span></label><select id="rf_material"><option value="">Select purchase first</option></select></div>
+        <div class="field"><label>Quantity Returned <span class="req">*</span></label><input type="number" id="rf_qty" min="0" step="any"></div>
+        <div class="field"><label>Reason</label><input type="text" id="rf_reason"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-ghost" id="rfCancel">Cancel</button>
+      <button class="btn btn-primary" id="rfSave">Save Return</button>
+    </div>
+  `;
+  document.getElementById('rfBack').onclick = renderReturnList;
+  document.getElementById('rfCancel').onclick = renderReturnList;
+  document.getElementById('rfSave').onclick = performSaveReturn;
+}
+window.onReturnPurchaseChange = function(){
+  const pid = document.getElementById('rf_purchaseId').value;
+  const matSel = document.getElementById('rf_material');
+  const supField = document.getElementById('rf_supplierName');
+  if(!pid){ matSel.innerHTML = '<option value="">Select purchase first</option>'; supField.value=''; return; }
+  const p = (cache.purchases||[]).find(x=>x.id===pid);
+  supField.value = supplierName(p.supplierId);
+  matSel.innerHTML = '<option value="">Select material</option>' + p.items.map(i=>{
+    const available = round2(i.qty - (i.returnedQty||0) - (i.consumedQty||0));
+    return `<option value="${i.id}" data-avail="${available}">${esc(i.itemName)} (available: ${available} ${esc(i.unit)})</option>`;
+  }).join('');
+};
+async function performSaveReturn(){
+  const purchaseId = document.getElementById('rf_purchaseId').value;
+  const date = document.getElementById('rf_date').value;
+  const itemRowId = document.getElementById('rf_material').value;
+  const qty = Number(document.getElementById('rf_qty').value);
+  const reason = document.getElementById('rf_reason').value.trim();
+
+  if(!purchaseId){ toast('Select a purchase reference.', true); return; }
+  if(!date){ toast('Date is required.', true); return; }
+  if(!itemRowId){ toast('Select a material.', true); return; }
+  if(!(qty>0)){ toast('Quantity returned must be greater than 0.', true); return; }
+
+  const p = (cache.purchases||[]).find(x=>x.id===purchaseId);
+  const item = p.items.find(i=>i.id===itemRowId);
+  const available = round2(item.qty - (item.returnedQty||0) - (item.consumedQty||0));
+  if(qty > available){ toast(`Cannot return more than available (${available} ${item.unit}).`, true); return; }
+
+  const mat = getMaterial(item.itemType, item.itemId);
+  const returnNo = await nextSeq('purchaseReturn','PRTN',4);
+  const retObj = {
+    id: uid(), returnNo, purchaseId: p.id, purchaseNo: p.purchaseNo, date, supplierId: p.supplierId,
+    itemType: item.itemType, itemId: item.itemId, itemName: item.itemName, qty, reason, createdAt: Date.now()
+  };
+  try{
+    await dbPut('purchaseReturns', retObj);
+    item.returnedQty = round2((item.returnedQty||0) + qty);
+    await dbPut('purchases', p);
+    cache.purchases = await dbGetAll('purchases');
+    cache.purchaseReturns = await dbGetAll('purchaseReturns');
+    await applyStockDelta({itemType:item.itemType, itemId:item.itemId, itemName:item.itemName, qty, rate: mat.avgCost||0, discountPct:0}, -1,
+      {reason:'Purchase Return', refType:'purchaseReturn', refId:retObj.id, refNo:retObj.returnNo});
+    await logAudit('RETURN','PurchaseReturn', retObj.id, retObj.returnNo, `Returned ${qty} ${item.unit} of ${item.itemName} against ${p.purchaseNo}`);
+    toast(`Return ${returnNo} saved.`);
+    renderReturnList();
+    if(currentKey===null) renderDashboard();
+  }catch(e){
+    toast('Could not save return.', true);
+  }
+}
+function confirmDeleteReturn(id){
+  const r = (cache.purchaseReturns||[]).find(x=>x.id===id);
+  if(!r) return;
+  openConfirmGeneric(`Delete return "${r.returnNo}"? The returned stock will be added back.`, async ()=>{
+    try{
+      const mat = getMaterial(r.itemType, r.itemId);
+      await applyStockDelta({itemType:r.itemType, itemId:r.itemId, itemName:r.itemName, qty:r.qty, rate: mat? mat.avgCost:0, discountPct:0}, +1,
+        {reason:'Purchase Return Deleted', refType:'purchaseReturn', refId:r.id, refNo:r.returnNo});
+      const p = (cache.purchases||[]).find(x=>x.id===r.purchaseId);
+      if(p){
+        const item = p.items.find(i=>i.id===r.itemId || (i.itemType===r.itemType && i.itemId===r.itemId));
+        if(item) item.returnedQty = round2(Math.max(0,(item.returnedQty||0) - r.qty));
+        await dbPut('purchases', p);
+        cache.purchases = await dbGetAll('purchases');
+      }
+      await dbDelete('purchaseReturns', id);
+      cache.purchaseReturns = await dbGetAll('purchaseReturns');
+      await logAudit('DELETE','PurchaseReturn', id, r.returnNo, `Deleted return ${r.returnNo} — stock reversed`);
+      toast(`Return ${r.returnNo} deleted.`);
+      renderReturnList();
+    }catch(e){
+      toast('Could not delete return.', true);
+    }
+  });
+}
+
+/* ---------- Purchase Reports ---------- */
+function renderReports(){
+  const suppliers = (cache.suppliers||[]).filter(s=>s.status!=='Inactive');
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div class="view-head">
+      <div class="vh-left"><div class="eyebrow">T3 · Transactions</div><h2>Purchase Reports</h2></div>
+    </div>
+    <div class="panel">
+      <div class="form-grid">
+        <div class="field"><label>From</label><input type="date" id="rp_from"></div>
+        <div class="field"><label>To</label><input type="date" id="rp_to"></div>
+        <div class="field"><label>Supplier</label><select id="rp_supplier"><option value="">All Suppliers</option>${suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></div>
+        <div class="field"><label>Material</label><input type="text" id="rp_material" placeholder="Search material name"></div>
+        <div class="field"><label>Category</label><input type="text" id="rp_category" placeholder="Raw material category"></div>
+        <div class="field"><label>Payment Type</label><select id="rp_payType"><option value="">All</option>${['Cash','Credit','UPI','Bank'].map(t=>`<option value="${t}">${t}</option>`).join('')}</select></div>
+      </div>
+      <div style="margin-top:14px;"><button class="btn btn-primary" id="rpRun">Run Report</button></div>
+    </div>
+    <div id="rpResults"></div>
+  `;
+  document.getElementById('rpRun').onclick = runReport;
+}
+function runReport(){
+  const from = document.getElementById('rp_from').value;
+  const to = document.getElementById('rp_to').value;
+  const supplierId = document.getElementById('rp_supplier').value;
+  const matQ = document.getElementById('rp_material').value.trim().toLowerCase();
+  const catQ = document.getElementById('rp_category').value.trim().toLowerCase();
+  const payType = document.getElementById('rp_payType').value;
+
+  const agg = {}; // key: itemType|itemId -> {name, unit, qty, value}
+  let purchaseCount = 0, grandValue = 0;
+
+  (cache.purchases||[]).forEach(p=>{
+    if(from && p.purchaseDate < from) return;
+    if(to && p.purchaseDate > to) return;
+    if(supplierId && p.supplierId !== supplierId) return;
+    if(payType && p.paymentType !== payType) return;
+    let matched = false;
+    p.items.forEach(i=>{
+      if(matQ && !i.itemName.toLowerCase().includes(matQ)) return;
+      if(catQ){
+        const mat = getMaterial(i.itemType, i.itemId);
+        const cat = mat && mat.category ? mat.category.toLowerCase() : '';
+        if(!cat.includes(catQ)) return;
+      }
+      matched = true;
+      const key = i.itemType+'|'+i.itemId;
+      if(!agg[key]) agg[key] = {name:i.itemName, unit:i.unit, qty:0, value:0};
+      agg[key].qty += i.qty;
+      agg[key].value += (i.qty*i.rate - i.discountAmt);
+      grandValue += i.lineTotal;
+    });
+    if(matched) purchaseCount++;
+  });
+
+  const rows = Object.values(agg).map(r=>({...r, avg: r.qty>0 ? r.value/r.qty : 0}));
+  rows.sort((a,b)=> b.value - a.value);
+
+  const totalQty = rows.reduce((s,r)=>s+r.qty,0);
+  const totalValue = rows.reduce((s,r)=>s+r.value,0);
+
+  const results = document.getElementById('rpResults');
+  if(rows.length===0){
+    results.innerHTML = `<div class="empty-state"><div class="es-icon">📊</div><h4>No matching purchase data</h4><p>Adjust the filters and run the report again.</p></div>`;
+    return;
+  }
+  results.innerHTML = `
+    <div class="report-summary">
+      <div class="rs-card"><div class="tl">Purchases Matched</div><div class="tv">${purchaseCount}</div></div>
+      <div class="rs-card"><div class="tl">Total Qty</div><div class="tv">${round2(totalQty)}</div></div>
+      <div class="rs-card"><div class="tl">Purchase Value</div><div class="tv">₹${totalValue.toFixed(2)}</div></div>
+      <div class="rs-card"><div class="tl">Avg Price</div><div class="tv">₹${(totalQty>0?totalValue/totalQty:0).toFixed(2)}</div></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button class="btn btn-ghost btn-sm" id="rpExportCsv">Export CSV (Excel)</button>
+      <button class="btn btn-ghost btn-sm" id="rpPrint">Print / Save as PDF</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Material</th><th>Unit</th><th>Qty Purchased</th><th>Purchase Value</th><th>Avg Price</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr>
+          <td data-label="Material">${esc(r.name)}</td>
+          <td data-label="Unit">${esc(r.unit)}</td>
+          <td data-label="Qty Purchased">${round2(r.qty)}</td>
+          <td data-label="Purchase Value" class="mono">₹${r.value.toFixed(2)}</td>
+          <td data-label="Avg Price" class="mono">₹${r.avg.toFixed(2)}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+  `;
+  document.getElementById('rpExportCsv').onclick = ()=>{
+    const csvRows = [['Material','Unit','Qty Purchased','Purchase Value','Avg Price']];
+    rows.forEach(r=> csvRows.push([r.name, r.unit, round2(r.qty), r.value.toFixed(2), r.avg.toFixed(2)]));
+    csvRows.push([]); csvRows.push(['Total','', round2(totalQty), totalValue.toFixed(2), (totalQty>0?totalValue/totalQty:0).toFixed(2)]);
+    csvDownload('purchase_report.csv', csvRows);
+  };
+  document.getElementById('rpPrint').onclick = ()=>{
+    const html = `
+      <h2>Sundaravalli Cottage Industries</h2>
+      <div class="p-sub">Purchase Report</div>
+      <table>
+        <thead><tr><th>Material</th><th>Unit</th><th>Qty Purchased</th><th>Purchase Value</th><th>Avg Price</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.unit)}</td><td>${round2(r.qty)}</td><td>₹${r.value.toFixed(2)}</td><td>₹${r.avg.toFixed(2)}</td></tr>`).join('')}</tbody>
+      </table>
+      <div class="p-totals"><strong>Total Qty: ${round2(totalQty)} &nbsp; | &nbsp; Total Value: ₹${totalValue.toFixed(2)} &nbsp; | &nbsp; Avg Price: ₹${(totalQty>0?totalValue/totalQty:0).toFixed(2)}</strong></div>
+    `;
+    doPrint(html);
+  };
+}
+
+boot();
+</script>
+</body>
+</html>
