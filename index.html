@@ -289,6 +289,33 @@ table.item-grid .row-remove:disabled{color:#C9C4B8;cursor:not-allowed;}
   #printArea .p-totals{margin-top:12px;font-size:13px;}
 }
 
+/* ---------- Stock module ---------- */
+.tab-row{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.tab-btn{
+  background:none;border:none;padding:10px 16px;font-size:13.5px;font-weight:600;color:#8B8578;cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+}
+.tab-btn.active{color:var(--graphite);border-bottom-color:var(--amber);}
+.tab-btn:hover{color:var(--graphite);}
+
+.badge.outofstock{background:#F1E4E2;color:var(--red);}
+.badge.lowstock{background:#FBF1E7;color:var(--amber-dark);}
+.badge.instock{background:#E4F1EF;color:var(--teal);}
+.badge.in{background:#E4F1EF;color:var(--teal);}
+.badge.out{background:#F1E4E2;color:var(--red);}
+
+.settings-toggle{
+  display:flex;align-items:center;gap:8px;font-size:12.5px;color:#C3C9D0;font-family:var(--mono);
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:7px 12px;
+  cursor:pointer;user-select:none;
+}
+.settings-toggle input{width:auto;margin:0;}
+
+.checkbox-row{display:flex;align-items:center;gap:8px;font-size:13px;color:#4A4F55;}
+.checkbox-row input{width:auto;}
+
+.sv-icon{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;background:var(--paper);font-size:17px;margin-bottom:8px;}
+
 /* ---------- Mobile ---------- */
 @media (max-width:880px){
   .sidebar{transform:translateX(-100%);width:250px;}
@@ -379,9 +406,10 @@ table.item-grid .row-remove:disabled{color:#C9C4B8;cursor:not-allowed;}
    ============================================================ */
 
 const DB_NAME = 'sundaravalli_erp';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORES = ['rawMaterials','suppliers','products','packingMaterials','labour','electricity','machines','expenses','units',
-  'purchases','purchaseReturns','stockMovements','auditLog','counters'];
+  'purchases','purchaseReturns','stockMovements','auditLog','counters',
+  'stockAdjustments','settings'];
 
 let db;
 function openDB(){
@@ -618,6 +646,8 @@ async function boot(){
   await reloadAllCache();
   await seedDefaultUnits();
   await migrateStockFields();
+  await migrateProductStockFields();
+  await ensureSettings();
   renderNav();
   renderDashboard();
   wireGlobalUI();
@@ -642,6 +672,32 @@ async function migrateStockFields(){
     }
     if(changed) cache[key] = await dbGetAll(key);
   }
+}
+async function migrateProductStockFields(){
+  let changed = false;
+  for(const r of (cache.products||[])){
+    if(r.currentStock===undefined){
+      r.currentStock = 0;
+      r.avgCost = 0;
+      r.minStock = r.minStock!==undefined ? r.minStock : 0;
+      r.updatedAt = Date.now();
+      await dbPut('products', r);
+      changed = true;
+    }
+  }
+  if(changed) cache.products = await dbGetAll('products');
+}
+let appSettings = {id:'app', allowNegativeStock:false};
+async function ensureSettings(){
+  cache.settings = await dbGetAll('settings');
+  const existing = cache.settings.find(s=>s.id==='app');
+  if(existing){ appSettings = existing; }
+  else{ await dbPut('settings', appSettings); cache.settings=[appSettings]; }
+}
+async function setAllowNegativeStock(val){
+  appSettings.allowNegativeStock = val;
+  await dbPut('settings', appSettings);
+  cache.settings = await dbGetAll('settings');
 }
 async function seedDefaultUnits(){
   if(cache.units && cache.units.length===0){
@@ -688,7 +744,26 @@ function renderNav(){
     b.onclick = ()=> go(t.key);
     nav.appendChild(b);
   });
+
+  const lbl3 = document.createElement('div');
+  lbl3.className='sect-label';
+  lbl3.textContent='Stock Management';
+  nav.appendChild(lbl3);
+
+  STOCK_NAV.forEach(s=>{
+    const b = document.createElement('button');
+    b.innerHTML = `<span class="num">${s.num}</span> ${s.label}`;
+    b.className = currentKey===s.key ? 'active':'';
+    b.onclick = ()=> go(s.key);
+    nav.appendChild(b);
+  });
 }
+const STOCK_NAV = [
+  {key:'stockDashboard', num:'S1', label:'Stock Dashboard'},
+  {key:'stockList', num:'S2', label:'Stock List'},
+  {key:'stockMovements', num:'S3', label:'Stock Movements'},
+  {key:'stockAdjustments', num:'S4', label:'Stock Adjustments'},
+];
 const TXN_NAV = [
   {key:'purchases', num:'T1', label:'Purchases'},
   {key:'purchaseReturns', num:'T2', label:'Purchase Returns'},
@@ -710,6 +785,18 @@ function go(key, after){
   } else if(key==='purchaseReports'){
     document.getElementById('tbTitle').textContent='Purchase Reports';
     renderReports();
+  } else if(key==='stockDashboard'){
+    document.getElementById('tbTitle').textContent='Stock Dashboard';
+    renderStockDashboard();
+  } else if(key==='stockList'){
+    document.getElementById('tbTitle').textContent='Stock List';
+    renderStockList();
+  } else if(key==='stockMovements'){
+    document.getElementById('tbTitle').textContent='Stock Movements';
+    renderStockMovementsView();
+  } else if(key==='stockAdjustments'){
+    document.getElementById('tbTitle').textContent='Stock Adjustments';
+    renderStockAdjustments();
   } else {
     const m = MASTERS.find(x=>x.key===key);
     document.getElementById('tbTitle').textContent = m.label;
@@ -766,6 +853,9 @@ function renderDashboard(){
   const thisMonth = purchases.filter(p=> String(p.purchaseDate||'').slice(0,7)===monthKey);
   const monthValue = thisMonth.reduce((s,p)=>s+(Number(p.grandTotal)||0),0);
   const creditDue = purchases.filter(p=>p.paymentType==='Credit').reduce((s,p)=>s+(Number(p.grandTotal)||0),0);
+  const stockRm = typeTotals('rawMaterials'), stockPm = typeTotals('packingMaterials'), stockFg = typeTotals('products');
+  const stockTotalLow = stockRm.low+stockPm.low+stockFg.low;
+  const stockTotalOut = stockRm.out+stockPm.out+stockFg.out;
 
   c.innerHTML = `
     <div class="hero">
@@ -776,6 +866,7 @@ function renderDashboard(){
         <button class="btn btn-sm" id="qaNewPurchase">+ New Purchase</button>
         <button class="btn btn-sm" id="qaPurchaseList">View Purchases</button>
         <button class="btn btn-sm" id="qaReports">Purchase Reports</button>
+        <button class="btn btn-sm" id="qaStock">Stock Dashboard</button>
       </div>
     </div>
     ${lowStockItems.length ? `
@@ -789,14 +880,26 @@ function renderDashboard(){
       <div class="rs-card"><div class="tl">Credit Outstanding</div><div class="tv">₹${creditDue.toFixed(0)}</div></div>
       <div class="rs-card"><div class="tl">Purchase Returns</div><div class="tv">${(cache.purchaseReturns||[]).length}</div></div>
     </div>
+    <div class="panel" id="stockMgmtCard" style="cursor:pointer;">
+      <h4>📦 Stock Management</h4>
+      <div class="report-summary" style="margin-bottom:0;">
+        <div class="rs-card"><div class="tl">Raw Material Stock</div><div class="tv">₹${stockRm.value.toFixed(0)}</div></div>
+        <div class="rs-card"><div class="tl">Packing Material Stock</div><div class="tv">₹${stockPm.value.toFixed(0)}</div></div>
+        <div class="rs-card"><div class="tl">Finished Goods Stock</div><div class="tv">₹${stockFg.value.toFixed(0)}</div></div>
+        <div class="rs-card"><div class="tl">Low Stock</div><div class="tv" style="color:var(--amber-dark);">${stockTotalLow}</div></div>
+        <div class="rs-card"><div class="tl">Out of Stock</div><div class="tv" style="color:var(--red);">${stockTotalOut}</div></div>
+      </div>
+    </div>
     <div class="grid-cards">${cardsHtml}</div>
   `;
+  document.getElementById('stockMgmtCard').onclick = ()=> go('stockDashboard');
   c.querySelectorAll('.stat-card').forEach(el=>{
     el.onclick = ()=> go(el.dataset.key);
   });
   document.getElementById('qaNewPurchase').onclick = ()=> go('purchases', ()=>openPurchaseForm(null));
   document.getElementById('qaPurchaseList').onclick = ()=> go('purchases');
   document.getElementById('qaReports').onclick = ()=> go('purchaseReports');
+  document.getElementById('qaStock').onclick = ()=> go('stockDashboard');
 }
 
 /* ---------------- Master list view ---------------- */
@@ -1000,15 +1103,29 @@ async function performSave(){
 
   const now = Date.now();
   let record;
+  const isNew = !editState.id;
   if(editState.id){
     record = (cache[m.key]||[]).find(r=>r.id===editState.id);
     record = Object.assign({}, record, data, {updatedAt:now});
   } else {
     record = Object.assign({id:uid(), createdAt:now, updatedAt:now}, data);
+    if(m.key==='rawMaterials' || m.key==='packingMaterials'){
+      record.currentStock = Number(record.openingStock)||0;
+      record.avgCost = Number(record.purchaseRate)||0;
+    }
   }
   try{
     await dbPut(m.key, record);
     cache[m.key] = await dbGetAll(m.key);
+    if(isNew && (m.key==='rawMaterials' || m.key==='packingMaterials') && Number(record.openingStock) > 0){
+      const movement = {
+        id:uid(), ts:now, date: todayISO(), itemType:m.key, itemId:record.id, itemName:record.name,
+        qtyChange: round2(Number(record.openingStock)), reason:'Opening Stock', refType:'master', refId:record.id, refNo:'—',
+        balanceAfter: record.currentStock, avgCostAfter: record.avgCost, remarks:'Initial opening stock on creation'
+      };
+      await dbPut('stockMovements', movement);
+      cache.stockMovements = await dbGetAll('stockMovements');
+    }
     closeForm();
     toast(`${m.singular} ${editState.id? 'updated':'added'}.`);
     renderMasterView(m);
@@ -1110,19 +1227,22 @@ async function logAudit(action, entity, entityId, refNo, summary){
 async function applyStockDelta(item, sign, meta){
   const mat = getMaterial(item.itemType, item.itemId);
   if(!mat) return;
-  const costBasis = Number(item.rate)*(1-(Number(item.discountPct)||0)/100);
+  const costBasis = meta.costOverride!=null && meta.costOverride!=='' ? Number(meta.costOverride) : Number(item.rate)*(1-(Number(item.discountPct)||0)/100);
   const curQty = Number(mat.currentStock)||0, curCost = Number(mat.avgCost)||0;
-  const newQtyRaw = curQty + sign*Number(item.qty);
+  const newQtyRaw = round2(curQty + sign*Number(item.qty));
+  if(newQtyRaw < 0 && !appSettings.allowNegativeStock){
+    throw new Error(`Insufficient stock for ${mat.name}. Available: ${curQty} ${mat.unit||''}. Enable "Allow negative stock" in Stock Dashboard settings to override.`);
+  }
   const newValue = curQty*curCost + sign*Number(item.qty)*costBasis;
-  const safeQty = Math.max(0, round2(newQtyRaw));
+  const safeQty = appSettings.allowNegativeStock ? newQtyRaw : Math.max(0, newQtyRaw);
   mat.currentStock = safeQty;
   mat.avgCost = safeQty>0 ? round2(newValue/safeQty) : 0;
   mat.updatedAt = Date.now();
   await dbPut(item.itemType, mat);
   const movement = {
-    id:uid(), ts:Date.now(), itemType:item.itemType, itemId:item.itemId, itemName:item.itemName||mat.name,
+    id:uid(), ts:Date.now(), date: meta.date || todayISO(), itemType:item.itemType, itemId:item.itemId, itemName:item.itemName||mat.name,
     qtyChange: round2(sign*Number(item.qty)), reason:meta.reason, refType:meta.refType, refId:meta.refId,
-    refNo:meta.refNo, balanceAfter:mat.currentStock, avgCostAfter:mat.avgCost
+    refNo:meta.refNo, balanceAfter:mat.currentStock, avgCostAfter:mat.avgCost, remarks: meta.remarks||''
   };
   await dbPut('stockMovements', movement);
   cache[item.itemType] = await dbGetAll(item.itemType);
@@ -1363,12 +1483,12 @@ async function performSavePurchase(){
   try{
     if(original){
       for(const it of original.items){
-        await applyStockDelta(it, -1, {reason:'Purchase Edit — Reverse', refType:'purchase', refId:record.id, refNo:record.purchaseNo});
+        await applyStockDelta(it, -1, {reason:'Purchase Edit — Reverse', refType:'purchase', refId:record.id, refNo:record.purchaseNo, date: original.purchaseDate});
       }
     }
     await dbPut('purchases', record);
     for(const it of items){
-      await applyStockDelta(it, +1, {reason: original? 'Purchase Edit — Apply' : 'Purchase', refType:'purchase', refId:record.id, refNo:record.purchaseNo});
+      await applyStockDelta(it, +1, {reason: original? 'Purchase Edit — Apply' : 'Purchase', refType:'purchase', refId:record.id, refNo:record.purchaseNo, date: record.purchaseDate});
     }
     cache.purchases = await dbGetAll('purchases');
     await logAudit(original?'EDIT':'CREATE', 'Purchase', record.id, record.purchaseNo, `${original?'Edited':'Created'} purchase ${record.purchaseNo} — ₹${grandTotal.toFixed(2)}`);
@@ -1376,7 +1496,7 @@ async function performSavePurchase(){
     renderPurchaseList();
     if(currentKey===null) renderDashboard();
   }catch(e){
-    toast('Could not save purchase. Please try again.', true);
+    toast(e.message || 'Could not save purchase. Please try again.', true);
   }
 }
 
@@ -1460,7 +1580,7 @@ function confirmDeletePurchase(id){
   openConfirmGeneric(`Delete purchase "${p.purchaseNo}" (₹${Number(p.grandTotal).toFixed(2)})? Stock will be reversed. This cannot be undone.`, async ()=>{
     try{
       for(const it of p.items){
-        await applyStockDelta(it, -1, {reason:'Purchase Delete', refType:'purchase', refId:p.id, refNo:p.purchaseNo});
+        await applyStockDelta(it, -1, {reason:'Purchase Delete', refType:'purchase', refId:p.id, refNo:p.purchaseNo, date: p.purchaseDate});
       }
       await dbDelete('purchases', id);
       cache.purchases = await dbGetAll('purchases');
@@ -1469,7 +1589,7 @@ function confirmDeletePurchase(id){
       renderPurchaseList();
       if(currentKey===null) renderDashboard();
     }catch(e){
-      toast('Could not delete purchase.', true);
+      toast(e.message || 'Could not delete purchase.', true);
     }
   });
 }
@@ -1656,13 +1776,13 @@ async function performSaveReturn(){
     cache.purchases = await dbGetAll('purchases');
     cache.purchaseReturns = await dbGetAll('purchaseReturns');
     await applyStockDelta({itemType:item.itemType, itemId:item.itemId, itemName:item.itemName, qty, rate: mat.avgCost||0, discountPct:0}, -1,
-      {reason:'Purchase Return', refType:'purchaseReturn', refId:retObj.id, refNo:retObj.returnNo});
+      {reason:'Purchase Return', refType:'purchaseReturn', refId:retObj.id, refNo:retObj.returnNo, date, remarks:reason});
     await logAudit('RETURN','PurchaseReturn', retObj.id, retObj.returnNo, `Returned ${qty} ${item.unit} of ${item.itemName} against ${p.purchaseNo}`);
     toast(`Return ${returnNo} saved.`);
     renderReturnList();
     if(currentKey===null) renderDashboard();
   }catch(e){
-    toast('Could not save return.', true);
+    toast(e.message || 'Could not save return.', true);
   }
 }
 function confirmDeleteReturn(id){
@@ -1686,7 +1806,7 @@ function confirmDeleteReturn(id){
       toast(`Return ${r.returnNo} deleted.`);
       renderReturnList();
     }catch(e){
-      toast('Could not delete return.', true);
+      toast(e.message || 'Could not delete return.', true);
     }
   });
 }
@@ -1801,6 +1921,408 @@ function runReport(){
     `;
     doPrint(html);
   };
+}
+
+/* ============================================================
+   MODULE 3 — STOCK MANAGEMENT
+   ============================================================ */
+
+const STOCK_TYPES = ['rawMaterials','packingMaterials','products'];
+function typeLabel(t){ return t==='rawMaterials'?'Raw Material': t==='packingMaterials'?'Packing Material':'Finished Good'; }
+function stockUnit(type, item){ return type==='products' ? (item.sellingUnit||'Unit') : (item.unit||''); }
+function stockCategory(item){ return item.category || '—'; }
+function getStockStatus(stock, minStock){
+  const s = Number(stock)||0, m = Number(minStock)||0;
+  if(s<=0) return {key:'out', label:'Out of Stock', cls:'outofstock'};
+  if(s<=m) return {key:'low', label:'Low Stock', cls:'lowstock'};
+  return {key:'ok', label:'In Stock', cls:'instock'};
+}
+function typeTotals(key){
+  const items = cache[key]||[];
+  const value = items.reduce((s,i)=> s + (Number(i.currentStock)||0)*(Number(i.avgCost)||0), 0);
+  const activeItems = items.filter(i=>i.status!=='Inactive');
+  const lowItems = activeItems.filter(i=> getStockStatus(i.currentStock,i.minStock).key==='low');
+  const outItems = activeItems.filter(i=> getStockStatus(i.currentStock,i.minStock).key==='out');
+  return {value, low:lowItems.length, out:outItems.length, lowItems, outItems, count:items.length};
+}
+
+/* ---------- Stock Dashboard ---------- */
+function renderStockDashboard(){
+  const c = document.getElementById('content');
+  const rm = typeTotals('rawMaterials'), pm = typeTotals('packingMaterials'), fg = typeTotals('products');
+  const totalValue = rm.value+pm.value+fg.value;
+  const totalLow = rm.low+pm.low+fg.low;
+  const totalOut = rm.out+pm.out+fg.out;
+  const alertItems = [
+    ...rm.outItems.map(i=>({name:i.name, type:'rawMaterials', st:'out'})),
+    ...pm.outItems.map(i=>({name:i.name, type:'packingMaterials', st:'out'})),
+    ...fg.outItems.map(i=>({name:i.name, type:'products', st:'out'})),
+    ...rm.lowItems.map(i=>({name:i.name, type:'rawMaterials', st:'low'})),
+    ...pm.lowItems.map(i=>({name:i.name, type:'packingMaterials', st:'low'})),
+    ...fg.lowItems.map(i=>({name:i.name, type:'products', st:'low'})),
+  ];
+  const recent = (cache.stockMovements||[]).slice().sort((a,b)=>b.ts-a.ts).slice(0,10);
+
+  c.innerHTML = `
+    <div class="view-head">
+      <div class="vh-left"><div class="eyebrow">S1 · Stock Management</div><h2>Stock Dashboard</h2></div>
+      <label class="settings-toggle" style="color:#4A4F55;border-color:var(--line);background:#fff;" id="negStockToggleWrap">
+        <input type="checkbox" id="negStockToggle" ${appSettings.allowNegativeStock?'checked':''}>
+        <span>Allow negative stock</span>
+      </label>
+    </div>
+    <div class="report-summary">
+      <div class="rs-card"><div class="tl">Raw Material Stock</div><div class="tv">₹${rm.value.toFixed(0)}</div></div>
+      <div class="rs-card"><div class="tl">Packing Material Stock</div><div class="tv">₹${pm.value.toFixed(0)}</div></div>
+      <div class="rs-card"><div class="tl">Finished Goods Stock</div><div class="tv">₹${fg.value.toFixed(0)}</div></div>
+      <div class="rs-card"><div class="tl">Low Stock Items</div><div class="tv" style="color:var(--amber-dark);">${totalLow}</div></div>
+      <div class="rs-card"><div class="tl">Out of Stock Items</div><div class="tv" style="color:var(--red);">${totalOut}</div></div>
+      <div class="rs-card"><div class="tl">Total Stock Value</div><div class="tv">₹${totalValue.toFixed(0)}</div></div>
+    </div>
+    ${alertItems.length ? `
+    <div class="alert-box">
+      <h4>⚠ ${totalOut} out of stock · ${totalLow} low stock</h4>
+      <ul>${alertItems.slice(0,10).map(i=>`<li>${esc(i.name)} <span class="mono" style="color:${i.st==='out'?'#8A2A22':'#8A5A16'}">(${typeLabel(i.type)} — ${i.st==='out'?'Out of Stock':'Low Stock'})</span></li>`).join('')}</ul>
+    </div>` : `<div class="alert-box" style="background:#E4F1EF;border-color:#BEE0DB;border-left-color:var(--teal);"><h4 style="color:#2A6B65;">✓ All active items are above minimum stock level</h4></div>`}
+    <div class="quick-actions" style="margin-top:0;margin-bottom:22px;">
+      <button class="btn btn-ghost btn-sm" id="qaStockList">View Stock List</button>
+      <button class="btn btn-ghost btn-sm" id="qaStockMovements">Stock Movements</button>
+      <button class="btn btn-primary btn-sm" id="qaNewAdjustment">+ New Stock Adjustment</button>
+    </div>
+    <div class="panel">
+      <h4>Recent Stock Movements</h4>
+      ${recent.length ? `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Ref No</th><th>IN</th><th>OUT</th><th>Balance</th></tr></thead>
+          <tbody>${recent.map(m=>`<tr>
+            <td data-label="Date">${esc(m.date||new Date(m.ts).toISOString().slice(0,10))}</td>
+            <td data-label="Item">${esc(m.itemName)}</td>
+            <td data-label="Type">${esc(m.reason)}</td>
+            <td data-label="Ref No" class="mono">${esc(m.refNo||'—')}</td>
+            <td data-label="IN" class="mono">${m.qtyChange>0? round2(m.qtyChange):''}</td>
+            <td data-label="OUT" class="mono">${m.qtyChange<0? round2(Math.abs(m.qtyChange)):''}</td>
+            <td data-label="Balance" class="mono">${round2(m.balanceAfter)}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>` : `<div class="empty-state"><div class="es-icon">📦</div><h4>No stock movements yet</h4><p>Movements appear here after purchases, returns, or adjustments.</p></div>`}
+    </div>
+  `;
+  document.getElementById('negStockToggle').onchange = async (e)=>{
+    await setAllowNegativeStock(e.target.checked);
+    toast(e.target.checked ? 'Negative stock is now allowed.' : 'Negative stock is now blocked.');
+  };
+  document.getElementById('qaStockList').onclick = ()=> go('stockList');
+  document.getElementById('qaStockMovements').onclick = ()=> go('stockMovements');
+  document.getElementById('qaNewAdjustment').onclick = ()=> go('stockAdjustments', ()=>openAdjustmentForm());
+}
+
+/* ---------- Stock List ---------- */
+let stockListState = {tab:'rawMaterials', q:'', category:'', sort:'name-asc', lowOnly:false, outOnly:false};
+function renderStockList(){
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div class="view-head">
+      <div class="vh-left"><div class="eyebrow">S2 · Stock Management</div><h2>Stock List</h2></div>
+    </div>
+    <div class="tab-row" id="stockTabs">
+      <button class="tab-btn" data-tab="rawMaterials">Raw Materials</button>
+      <button class="tab-btn" data-tab="packingMaterials">Packing Materials</button>
+      <button class="tab-btn" data-tab="products">Finished Goods</button>
+    </div>
+    <div class="filters-row">
+      <input type="search" id="slq" placeholder="Search item name…" value="${esc(stockListState.q)}">
+      <select id="slCategory"><option value="">All Categories</option></select>
+      <select id="slSort">
+        <option value="name-asc">Name (A–Z)</option>
+        <option value="stock-asc">Stock (Low → High)</option>
+        <option value="stock-desc">Stock (High → Low)</option>
+        <option value="value-desc">Value (High → Low)</option>
+      </select>
+      <label class="checkbox-row"><input type="checkbox" id="slLow"> Low Stock only</label>
+      <label class="checkbox-row"><input type="checkbox" id="slOut"> Out of Stock only</label>
+    </div>
+    <div class="table-wrap" id="slTableWrap"></div>
+  `;
+  document.getElementById('stockTabs').querySelectorAll('.tab-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab===stockListState.tab);
+    b.onclick = ()=>{ stockListState.tab=b.dataset.tab; stockListState.category=''; stockListState.q=''; stockListState.lowOnly=false; stockListState.outOnly=false; renderStockList(); };
+  });
+  const catSel = document.getElementById('slCategory');
+  const cats = Array.from(new Set((cache[stockListState.tab]||[]).map(i=>stockCategory(i)).filter(c=>c && c!=='—'))).sort();
+  catSel.innerHTML = '<option value="">All Categories</option>' + cats.map(c=>`<option value="${esc(c)}" ${stockListState.category===c?'selected':''}>${esc(c)}</option>`).join('');
+  document.getElementById('slq').oninput = (e)=>{ stockListState.q=e.target.value; renderStockListTable(); };
+  catSel.onchange = (e)=>{ stockListState.category=e.target.value; renderStockListTable(); };
+  document.getElementById('slSort').value = stockListState.sort;
+  document.getElementById('slSort').onchange = (e)=>{ stockListState.sort=e.target.value; renderStockListTable(); };
+  document.getElementById('slLow').checked = stockListState.lowOnly;
+  document.getElementById('slLow').onchange = (e)=>{ stockListState.lowOnly=e.target.checked; renderStockListTable(); };
+  document.getElementById('slOut').checked = stockListState.outOnly;
+  document.getElementById('slOut').onchange = (e)=>{ stockListState.outOnly=e.target.checked; renderStockListTable(); };
+  renderStockListTable();
+}
+function renderStockListTable(){
+  const wrap = document.getElementById('slTableWrap');
+  const type = stockListState.tab;
+  let rows = (cache[type]||[]).slice();
+  if(stockListState.q.trim()){
+    const q = stockListState.q.trim().toLowerCase();
+    rows = rows.filter(r=> r.name.toLowerCase().includes(q));
+  }
+  if(stockListState.category) rows = rows.filter(r=> stockCategory(r)===stockListState.category);
+  if(stockListState.lowOnly) rows = rows.filter(r=> getStockStatus(r.currentStock,r.minStock).key==='low');
+  if(stockListState.outOnly) rows = rows.filter(r=> getStockStatus(r.currentStock,r.minStock).key==='out');
+
+  const valueOf = r=> (Number(r.currentStock)||0)*(Number(r.avgCost)||0);
+  if(stockListState.sort==='name-asc') rows.sort((a,b)=>a.name.localeCompare(b.name));
+  else if(stockListState.sort==='stock-asc') rows.sort((a,b)=>(Number(a.currentStock)||0)-(Number(b.currentStock)||0));
+  else if(stockListState.sort==='stock-desc') rows.sort((a,b)=>(Number(b.currentStock)||0)-(Number(a.currentStock)||0));
+  else if(stockListState.sort==='value-desc') rows.sort((a,b)=>valueOf(b)-valueOf(a));
+
+  if(rows.length===0){
+    wrap.innerHTML = `<div class="empty-state"><div class="es-icon">📦</div><h4>No items found</h4><p>Try adjusting your search or filters.</p></div>`;
+    return;
+  }
+  const thead = `<thead><tr><th>Item Name</th><th>Category</th><th>Current Stock</th><th>Unit</th><th>Avg Cost</th><th>Stock Value</th><th>Min Stock</th><th>Status</th></tr></thead>`;
+  const tbody = rows.map(r=>{
+    const st = getStockStatus(r.currentStock, r.minStock);
+    const val = valueOf(r);
+    return `<tr>
+      <td data-label="Item Name"><span class="name-cell">${esc(r.name)}${r.status==='Inactive'?' <span class="sub">(Inactive)</span>':''}</span></td>
+      <td data-label="Category">${esc(stockCategory(r))}</td>
+      <td data-label="Current Stock" class="mono">${round2(r.currentStock)}</td>
+      <td data-label="Unit">${esc(stockUnit(type,r))}</td>
+      <td data-label="Avg Cost" class="mono">₹${Number(r.avgCost||0).toFixed(2)}</td>
+      <td data-label="Stock Value" class="mono">₹${val.toFixed(2)}</td>
+      <td data-label="Min Stock" class="mono"><span style="cursor:pointer;text-decoration:underline dotted;" title="Click to edit" data-act="editmin" data-id="${r.id}">${round2(r.minStock||0)}</span></td>
+      <td data-label="Status"><span class="badge ${st.cls}">${st.label}</span></td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `<table>${thead}<tbody>${tbody}</tbody></table>`;
+  wrap.querySelectorAll('[data-act=editmin]').forEach(el=> el.onclick=()=>editMinStock(type, el.dataset.id));
+}
+window.editMinStock = async function(type, id){
+  const mat = getMaterial(type, id);
+  if(!mat) return;
+  const val = prompt(`Set minimum stock level for ${mat.name} (${stockUnit(type,mat)}):`, mat.minStock||0);
+  if(val===null) return;
+  const num = Number(val);
+  if(isNaN(num) || num<0){ toast('Enter a valid non-negative number.', true); return; }
+  mat.minStock = num; mat.updatedAt = Date.now();
+  await dbPut(type, mat);
+  cache[type] = await dbGetAll(type);
+  toast('Minimum stock updated.');
+  renderStockListTable();
+  if(currentKey===null) renderDashboard();
+};
+
+/* ---------- Stock Movements ledger ---------- */
+let smFilters = {q:'', type:'', itemType:'', from:'', to:''};
+function renderStockMovementsView(){
+  const c = document.getElementById('content');
+  const reasons = Array.from(new Set((cache.stockMovements||[]).map(m=>m.reason))).sort();
+  c.innerHTML = `
+    <div class="view-head">
+      <div class="vh-left"><div class="eyebrow">S3 · Stock Management</div><h2>Stock Movements</h2></div>
+    </div>
+    <div class="filters-row">
+      <input type="search" id="smq" placeholder="Search item / reference no…" value="${esc(smFilters.q)}">
+      <select id="smItemType">
+        <option value="">All Item Types</option>
+        <option value="rawMaterials">Raw Materials</option>
+        <option value="packingMaterials">Packing Materials</option>
+        <option value="products">Finished Goods</option>
+      </select>
+      <select id="smType"><option value="">All Movement Types</option>${reasons.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('')}</select>
+      <span class="fr-label">From</span><input type="date" id="smFrom" value="${smFilters.from}">
+      <span class="fr-label">To</span><input type="date" id="smTo" value="${smFilters.to}">
+    </div>
+    <div class="table-wrap" id="smTableWrap"></div>
+  `;
+  const wire = (id,key)=>{ document.getElementById(id).oninput = document.getElementById(id).onchange = (e)=>{ smFilters[key]=e.target.value; renderStockMovementsTable(); }; };
+  wire('smq','q'); wire('smItemType','itemType'); wire('smType','type'); wire('smFrom','from'); wire('smTo','to');
+  renderStockMovementsTable();
+}
+function renderStockMovementsTable(){
+  const wrap = document.getElementById('smTableWrap');
+  let rows = (cache.stockMovements||[]).slice();
+  if(smFilters.q.trim()){
+    const q = smFilters.q.trim().toLowerCase();
+    rows = rows.filter(m=> m.itemName.toLowerCase().includes(q) || String(m.refNo||'').toLowerCase().includes(q));
+  }
+  if(smFilters.itemType) rows = rows.filter(m=>m.itemType===smFilters.itemType);
+  if(smFilters.type) rows = rows.filter(m=>m.reason===smFilters.type);
+  if(smFilters.from) rows = rows.filter(m=>(m.date||'') >= smFilters.from);
+  if(smFilters.to) rows = rows.filter(m=>(m.date||'') <= smFilters.to);
+  rows.sort((a,b)=>b.ts-a.ts);
+
+  if(rows.length===0){
+    wrap.innerHTML = `<div class="empty-state"><div class="es-icon">📦</div><h4>No stock movements found</h4><p>Try adjusting your filters.</p></div>`;
+    return;
+  }
+  const thead = `<thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Ref No</th><th>IN</th><th>OUT</th><th>Balance</th><th>Unit Cost</th><th>Remarks</th></tr></thead>`;
+  const tbody = rows.map(m=>`<tr>
+    <td data-label="Date">${esc(m.date||new Date(m.ts).toISOString().slice(0,10))}</td>
+    <td data-label="Item">${esc(m.itemName)}<span class="sub" style="display:block;font-size:11px;color:#9A9484;">${esc(typeLabel(m.itemType))}</span></td>
+    <td data-label="Type">${esc(m.reason)}</td>
+    <td data-label="Ref No" class="mono">${esc(m.refNo||'—')}</td>
+    <td data-label="IN" class="mono">${m.qtyChange>0? round2(m.qtyChange):''}</td>
+    <td data-label="OUT" class="mono">${m.qtyChange<0? round2(Math.abs(m.qtyChange)):''}</td>
+    <td data-label="Balance" class="mono">${round2(m.balanceAfter)}</td>
+    <td data-label="Unit Cost" class="mono">₹${Number(m.avgCostAfter||0).toFixed(2)}</td>
+    <td data-label="Remarks">${esc(m.remarks||'—')}</td>
+  </tr>`).join('');
+  wrap.innerHTML = `<table>${thead}<tbody>${tbody}</tbody></table>`;
+}
+
+/* ---------- Stock Adjustment ---------- */
+function renderStockAdjustments(){
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div class="view-head">
+      <div class="vh-left"><div class="eyebrow">S4 · Stock Management</div><h2>Stock Adjustments</h2></div>
+      <button class="btn btn-primary" id="newAdjBtn">+ New Adjustment</button>
+    </div>
+    <div class="table-wrap" id="adjTableWrap"></div>
+  `;
+  document.getElementById('newAdjBtn').onclick = openAdjustmentForm;
+  const rows = (cache.stockAdjustments||[]).slice().sort((a,b)=>b.createdAt-a.createdAt);
+  const wrap = document.getElementById('adjTableWrap');
+  if(rows.length===0){
+    wrap.innerHTML = `<div class="empty-state"><div class="es-icon">⚖️</div><h4>No stock adjustments yet</h4><p>Click "+ New Adjustment" to correct a stock count.</p></div>`;
+    return;
+  }
+  const thead = `<thead><tr><th>Adj No</th><th>Date</th><th>Item</th><th>Direction</th><th>Qty</th><th>Reason</th><th></th></tr></thead>`;
+  const tbody = rows.map(a=>`<tr>
+    <td data-label="Adj No" class="mono">${esc(a.adjNo)}</td>
+    <td data-label="Date">${esc(a.date)}</td>
+    <td data-label="Item">${esc(a.itemName)}<span class="sub" style="display:block;font-size:11px;color:#9A9484;">${esc(typeLabel(a.itemType))}</span></td>
+    <td data-label="Direction"><span class="badge ${a.direction==='IN'?'in':'out'}">${a.direction}</span></td>
+    <td data-label="Qty" class="mono">${round2(a.qty)}</td>
+    <td data-label="Reason">${esc(a.reason||'—')}</td>
+    <td class="row-actions-cell"><div class="row-actions"><button class="btn btn-danger btn-sm" data-act="del" data-id="${a.id}">Delete</button></div></td>
+  </tr>`).join('');
+  wrap.innerHTML = `<table>${thead}<tbody>${tbody}</tbody></table>`;
+  wrap.querySelectorAll('[data-act=del]').forEach(b=> b.onclick=()=>confirmDeleteAdjustment(b.dataset.id));
+}
+function openAdjustmentForm(){
+  const c = document.getElementById('content');
+  const rm = (cache.rawMaterials||[]).filter(m=>m.status!=='Inactive').map(m=>({value:'rawMaterials:'+m.id, label:m.name}));
+  const pm = (cache.packingMaterials||[]).filter(m=>m.status!=='Inactive').map(m=>({value:'packingMaterials:'+m.id, label:m.name}));
+  const fg = (cache.products||[]).filter(m=>m.status!=='Inactive').map(m=>({value:'products:'+m.id, label:m.name}));
+  c.innerHTML = `
+    <div class="view-head">
+      <div class="vh-left"><div class="eyebrow">S4 · Stock Adjustment</div><h2>New Stock Adjustment</h2></div>
+      <button class="btn btn-ghost" id="afBack">← Back to List</button>
+    </div>
+    <div class="panel">
+      <div class="form-grid">
+        <div class="field"><label>Item <span class="req">*</span></label>
+          <select id="af_item" onchange="onAdjItemChange()">
+            <option value="">Select item</option>
+            <optgroup label="Raw Materials">${rm.map(o=>`<option value="${o.value}">${esc(o.label)}</option>`).join('')}</optgroup>
+            <optgroup label="Packing Materials">${pm.map(o=>`<option value="${o.value}">${esc(o.label)}</option>`).join('')}</optgroup>
+            <optgroup label="Finished Goods">${fg.map(o=>`<option value="${o.value}">${esc(o.label)}</option>`).join('')}</optgroup>
+          </select>
+        </div>
+        <div class="field"><label>Current Stock</label><input type="text" id="af_currentStock" disabled value="—"></div>
+        <div class="field"><label>Adjustment Quantity <span class="req">*</span></label><input type="number" id="af_qty" min="0" step="any"></div>
+        <div class="field"><label>Direction <span class="req">*</span></label>
+          <div class="status-toggle">
+            <label class="opt-active"><input type="radio" name="af_dir" value="IN" checked><span>IN (Add)</span></label>
+            <label class="opt-inactive"><input type="radio" name="af_dir" value="OUT"><span>OUT (Remove)</span></label>
+          </div>
+        </div>
+        <div class="field"><label>Unit Cost (₹) — optional, for IN only</label><input type="number" id="af_unitCost" min="0" step="any" placeholder="Leave blank to use current avg cost"></div>
+        <div class="field"><label>Date <span class="req">*</span></label><input type="date" id="af_date" value="${todayISO()}"></div>
+        <div class="field"><label>Reason <span class="req">*</span></label>
+          <select id="af_reason">
+            <option value="Physical Count">Physical Count</option>
+            <option value="Damage / Breakage">Damage / Breakage</option>
+            <option value="Expiry">Expiry</option>
+            <option value="Correction">Correction</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-ghost" id="afCancel">Cancel</button>
+      <button class="btn btn-primary" id="afSave">Save Adjustment</button>
+    </div>
+  `;
+  document.getElementById('afBack').onclick = renderStockAdjustments;
+  document.getElementById('afCancel').onclick = renderStockAdjustments;
+  document.getElementById('afSave').onclick = performSaveAdjustment;
+}
+window.onAdjItemChange = function(){
+  const val = document.getElementById('af_item').value;
+  const el = document.getElementById('af_currentStock');
+  if(!val){ el.value='—'; return; }
+  const [type,id] = val.split(':');
+  const mat = getMaterial(type,id);
+  el.value = mat ? `${round2(mat.currentStock)} ${stockUnit(type,mat)} (Avg Cost ₹${Number(mat.avgCost||0).toFixed(2)})` : '—';
+};
+async function performSaveAdjustment(){
+  const val = document.getElementById('af_item').value;
+  const qty = Number(document.getElementById('af_qty').value);
+  const direction = document.querySelector('input[name="af_dir"]:checked').value;
+  const unitCostRaw = document.getElementById('af_unitCost').value;
+  const date = document.getElementById('af_date').value;
+  const reason = document.getElementById('af_reason').value;
+
+  if(!val){ toast('Select an item.', true); return; }
+  if(!(qty>0)){ toast('Adjustment quantity must be greater than 0.', true); return; }
+  if(!date){ toast('Date is required.', true); return; }
+  if(unitCostRaw!=='' && Number(unitCostRaw) < 0){ toast('Unit cost cannot be negative.', true); return; }
+
+  const [itemType,itemId] = val.split(':');
+  const mat = getMaterial(itemType,itemId);
+  if(!mat){ toast('Item not found.', true); return; }
+
+  const sign = direction==='IN' ? 1 : -1;
+  const costOverride = direction==='IN' && unitCostRaw!=='' ? Number(unitCostRaw) : null;
+  const adjNo = await nextSeq('stockAdjustment','ADJ',4);
+
+  try{
+    await applyStockDelta(
+      {itemType, itemId, itemName:mat.name, qty, rate: costOverride!=null? costOverride : (mat.avgCost||0), discountPct:0},
+      sign,
+      {reason:'Stock Adjustment', refType:'stockAdjustment', refId:adjNo, refNo:adjNo, date, remarks:reason, costOverride}
+    );
+    const adjObj = {id:uid(), adjNo, date, itemType, itemId, itemName:mat.name, qty, direction, unitCost: costOverride, reason, createdAt:Date.now()};
+    await dbPut('stockAdjustments', adjObj);
+    cache.stockAdjustments = await dbGetAll('stockAdjustments');
+    await logAudit('ADJUST', typeLabel(itemType), itemId, adjNo, `${direction} adjustment of ${qty} ${stockUnit(itemType,mat)} for ${mat.name} — ${reason}`);
+    toast(`Adjustment ${adjNo} saved.`);
+    renderStockAdjustments();
+    if(currentKey===null) renderDashboard();
+  }catch(e){
+    toast(e.message || 'Could not save adjustment.', true);
+  }
+}
+function confirmDeleteAdjustment(id){
+  const a = (cache.stockAdjustments||[]).find(x=>x.id===id);
+  if(!a) return;
+  openConfirmGeneric(`Delete adjustment "${a.adjNo}"? This will reverse the stock change.`, async ()=>{
+    try{
+      const mat = getMaterial(a.itemType, a.itemId);
+      const sign = a.direction==='IN' ? -1 : 1;
+      await applyStockDelta(
+        {itemType:a.itemType, itemId:a.itemId, itemName:a.itemName, qty:a.qty, rate: mat? mat.avgCost:0, discountPct:0},
+        sign,
+        {reason:'Stock Adjustment Reversed', refType:'stockAdjustment', refId:a.adjNo, refNo:a.adjNo, date: todayISO(), remarks:`Reversal of ${a.adjNo}`}
+      );
+      await dbDelete('stockAdjustments', id);
+      cache.stockAdjustments = await dbGetAll('stockAdjustments');
+      await logAudit('DELETE','StockAdjustment', id, a.adjNo, `Deleted adjustment ${a.adjNo} — stock reversed`);
+      toast(`Adjustment ${a.adjNo} deleted.`);
+      renderStockAdjustments();
+      if(currentKey===null) renderDashboard();
+    }catch(e){
+      toast(e.message || 'Could not delete adjustment.', true);
+    }
+  });
 }
 
 boot();

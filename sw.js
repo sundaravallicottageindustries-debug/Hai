@@ -1,6 +1,6 @@
-const CACHE = 'sv-master-data-v1';
+const CACHE = 'sv-erp-v3';
 const ASSETS = [
-  './sundaravalli_master_data.html',
+  './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
